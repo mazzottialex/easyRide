@@ -1,18 +1,22 @@
 <script setup>
 import axios from "axios"
-import { onMounted, ref } from "vue"
-
-</script>
+import { ref } from "vue"
+</script>  
 
 <template>
-  <div class="landing-page">
-    <h1>Hello World!</h1>
+  <div class="min-vh-100 d-flex justify-content-center align-items-center bg-light">
+    <div class="text-center px-4 animate-fade-in-up">
+      <h1 class="display-3 fw-bold text-primary mb-3">EASYRIDE</h1>
+      <p class="lead text-secondary mb-5">
+        Descrizione
+      </p>
+      
+      <router-link 
+        to="/registration"
+        class="btn btn-primary btn-lg px-5 py-3 rounded-pill fw-bold shadow"
+      >
+        Inizia Ora
+      </router-link>
+    </div>
   </div>
 </template>
-
-<style>
-.landing-page {
-  text-align: center;
-  margin-top: 50px;
-}
-</style>
