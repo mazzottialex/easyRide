@@ -2,14 +2,14 @@ import { createRouter, createWebHistory } from 'vue-router';
 import LandingPage from '../pages/LandingPage.vue';
 import LoginPage from '../pages/LoginPage.vue';
 import RegistrationPage from '../pages/RegistrationPage.vue';
+import HomePage from '../pages/HomePage.vue';
 
 
 const routes = [
     { path: '/', name: "Landing", component: LandingPage },
     { path: '/login', name: "Login", component: LoginPage },
-    { path: '/registration', name: "Registration", component: RegistrationPage }
-
-    
+    { path: '/registration', name: "Registration", component: RegistrationPage },
+    { path: '/home', name: "Home", component: HomePage }
 ];
 
 const router = createRouter({

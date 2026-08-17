@@ -10,7 +10,7 @@ const handleRegister = async () => {
   console.log("Register:", registerData.value)
   try {
     await axios.post('http://localhost:3000/api/users/register', registerData.value);
-    router.push('/login');
+    router.push('/home');
   } catch (error) {
     const message = error?.response?.data?.message || 'Errore durante la registrazione';
     alert(message);

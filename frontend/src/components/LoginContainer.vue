@@ -1,11 +1,20 @@
 <script setup>
 import { ref } from "vue"
 import { useRouter } from "vue-router"
+import axios from "axios"
 
+const router = useRouter();
 const loginData = ref({ email: "", password: "" })
 
-const handleLogin = () => {
+const handleLogin = async () => {
   console.log("Login:", loginData.value)
+  try {
+    const response = await axios.post('http://localhost:3000/api/users/verify', loginData.value);
+    router.push('/home');
+  } catch (error) {
+    const message = error?.response?.data?.message;
+    alert(message);
+  }
 }
 </script>
 

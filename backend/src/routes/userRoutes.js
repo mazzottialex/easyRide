@@ -8,4 +8,7 @@ router.route('/register')
 router.route('/login')
     .post(controller.getUserByEmail)
 
+router.route('/verify')
+    .post(controller.verifyUser)
+
 module.exports = router;
