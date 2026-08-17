@@ -1,11 +1,20 @@
 <script setup>
 import { ref } from "vue"
 import { useRouter } from "vue-router"
+import axios from 'axios';
 
+const router = useRouter();
 const registerData = ref({ name: "", email: "", password: "" })
 
-const handleRegister = () => {
+const handleRegister = async () => {
   console.log("Register:", registerData.value)
+  try {
+    await axios.post('http://localhost:3000/api/users/register', registerData.value);
+    router.push('/login');
+  } catch (error) {
+    const message = error?.response?.data?.message || 'Errore durante la registrazione';
+    alert(message);
+  }
 }
 </script>
 

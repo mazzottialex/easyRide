@@ -1,6 +1,7 @@
 const { userModel } = require('../models/usersModel');
 
 exports.createUser = (req, res) => {
+    console.log(`Richiesta creazione nuovo utente. Dati ricevuti:`, req.body);
     const user = new userModel(req.body);
     user.save()
         .then(doc => {
