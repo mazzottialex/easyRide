@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from "vue"
 import { useRouter } from "vue-router"
-import axios from 'axios';
+import axios from 'axios'
 
 const router = useRouter();
 const registerData = ref({ name: "", email: "", password: "" })
@@ -21,8 +21,13 @@ const handleRegister = async () => {
 <template>
   <div class="container mt-5">
     <div class="row justify-content-center">
-      <div class="col-md-6">
-        <h2 class="mb-4 text-center">Registrazione</h2>
+        <div class="col-md-6">
+          <div class="text-center mb-5">
+          <router-link to="/" class="display-6 fw-bold text-primary text-decoration-none">
+            EASYRIDE
+          </router-link>
+          <p class="text-secondary mt-2 fs-5">Registrazione driver</p>
+        </div>
         
         <form @submit.prevent="handleRegister">
           <div class="mb-3">
@@ -42,7 +47,11 @@ const handleRegister = async () => {
           
           <button type="submit" class="btn btn-primary w-100">Registrati</button>
         </form>
-        
+
+        <div class="mt-3 text-center">
+          <router-link to="/registration-driver">Sei un driver? Registrati qui</router-link>
+        </div>
+
         <div class="mt-3 text-center">
           <router-link to="/login">Torna al Login</router-link>
         </div>

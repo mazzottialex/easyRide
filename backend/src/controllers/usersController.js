@@ -1,4 +1,5 @@
 const { userModel } = require('../models/usersModel');
+const { vehiclesModel: vehicleModel } = require('../models/vehiclesModel');
 const crypto = require('crypto');
 
 exports.createUser = (req, res) => {
@@ -19,6 +20,33 @@ exports.createUser = (req, res) => {
         .catch(err => {
             res.status(500).send(err);
         });
+} 
+
+exports.createDriver = async (req, res) => {
+    try {
+        const { name, email, password, brand, model, numberPlate, color } = req.body;
+        const salt = crypto.randomBytes(16).toString('hex');
+        const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+        const user = new userModel({
+            name,
+            email,
+            salt,
+            hash,
+            role: 'driver'
+        });
+        const driver = await user.save();
+        const vehicle = new vehicleModel({
+            driverId: driver._id,
+            brand,
+            model,
+            numberPlate,
+            color
+        });
+        const savedVehicle = await vehicle.save();
+        res.status(201).json({ driver, vehicle: savedVehicle });
+    } catch (err) {
+        res.status(500).json(err);
+    }
 }
 
 exports.getUserByEmail = (req, res) => {
