@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue"
+import { onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 import axios from 'axios'
 
@@ -16,6 +16,12 @@ const handleRegister = async () => {
     alert(message);
   }
 }
+
+onMounted(() => {
+  if (localStorage.getItem('token')) {
+    router.push('/home')
+  }
+})
 </script>
 
 <template>
@@ -26,7 +32,7 @@ const handleRegister = async () => {
           <router-link to="/" class="display-6 fw-bold text-primary text-decoration-none">
             EASYRIDE
           </router-link>
-          <p class="text-secondary mt-2 fs-5">Registrazione driver</p>
+          <p class="text-secondary mt-2 fs-5">Registrazione</p>
         </div>
         
         <form @submit.prevent="handleRegister">

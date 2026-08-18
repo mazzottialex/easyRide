@@ -1,6 +1,7 @@
 const { userModel } = require('../models/usersModel');
 const { vehiclesModel: vehicleModel } = require('../models/vehiclesModel');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 exports.createUser = (req, res) => {
     const { name, email, password } = req.body;
@@ -49,20 +50,6 @@ exports.createDriver = async (req, res) => {
     }
 }
 
-exports.getUserByEmail = (req, res) => {
-    const email = req.params.email;
-    userModel.findOne({ email: email })
-        .then(doc => {
-            if (!doc) {
-                return res.status(404).send('User not found');
-            }
-            res.json(doc);
-        })
-        .catch(err => {
-            res.status(500).send(err);
-        });
-}
-
 exports.verifyUser = (req, res) => {
     const { email, password } = req.body;
     userModel.findOne({ email: email })
@@ -74,7 +61,8 @@ exports.verifyUser = (req, res) => {
             if (hashToVerify !== doc.hash) {
                 return res.status(401).send('Invalid password');
             }
-            res.status(200).json({ user: doc });
+            const token = jwt.sign({ user_Id: doc._id, email: doc.email, role: doc.role }, 'abcabcabc', { expiresIn: '24h' });
+            res.status(200).json({ token: token, user: doc });
         })
         .catch(err => {
             res.status(500).send(err);

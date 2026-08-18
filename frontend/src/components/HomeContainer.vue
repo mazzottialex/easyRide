@@ -1,7 +1,22 @@
 <script setup>
 import axios from "axios"
-import { ref } from "vue"
-</script>  
+import { onMounted, ref } from "vue"
+import router from "../routes/router"
+const currentUser = ref(null)
+
+onMounted(() => {
+  const user = localStorage.getItem('user');
+  if (user) {
+    currentUser.value = JSON.parse(user);
+  }
+})
+
+const handleLogout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  router.push('/');
+}
+</script>
 
 <template>
   <div class="min-vh-100 d-flex justify-content-center align-items-center bg-light">
@@ -10,7 +25,11 @@ import { ref } from "vue"
       <p class="lead text-secondary mb-5">
         HOME PAGE
       </p>
-    
+
+      <h2 v-if="currentUser" class="lead text-secondary mb-5">
+        Ciao {{ currentUser.name }}
+      </h2>
+
     </div>
   </div>
 </template>

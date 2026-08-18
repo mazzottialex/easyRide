@@ -7,15 +7,22 @@ const router = useRouter();
 const loginData = ref({ email: "", password: "" })
 
 const handleLogin = async () => {
-  console.log("Login:", loginData.value)
   try {
     const response = await axios.post('http://localhost:3000/api/users/verify', loginData.value);
+    localStorage.setItem('token', response.data.token);
+    localStorage.setItem('user', JSON.stringify(response.data.user));
     router.push('/home');
   } catch (error) {
     const message = error?.response?.data?.message;
     alert(message);
   }
 }
+
+onMounted(() => {
+  if (localStorage.getItem('token')) {
+    router.push('/home')
+  }
+})
 </script>
 
 <template>

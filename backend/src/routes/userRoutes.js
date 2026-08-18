@@ -8,9 +8,6 @@ router.route('/register')
 router.route('/register-driver')
     .post(controller.createDriver)
 
-router.route('/login')
-    .post(controller.getUserByEmail)
-
 router.route('/verify')
     .post(controller.verifyUser)
 

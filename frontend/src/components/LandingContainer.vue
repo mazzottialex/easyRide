@@ -1,7 +1,15 @@
 <script setup>
-import axios from "axios"
-import { ref } from "vue"
-</script>  
+import { onMounted } from "vue"
+import { useRouter } from "vue-router"
+
+const router = useRouter()
+
+onMounted(() => {
+  if (localStorage.getItem('token')) {
+    router.push('/home')
+  }
+})
+</script>
 
 <template>
   <div class="min-vh-100 d-flex justify-content-center align-items-center bg-light">
