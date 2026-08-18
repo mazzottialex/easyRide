@@ -17,12 +17,6 @@ const handleLogin = async () => {
     alert(message);
   }
 }
-
-onMounted(() => {
-  if (localStorage.getItem('token')) {
-    router.push('/home')
-  }
-})
 </script>
 
 <template>

@@ -4,11 +4,6 @@ import { useRouter } from "vue-router"
 
 const router = useRouter()
 
-onMounted(() => {
-  if (localStorage.getItem('token')) {
-    router.push('/home')
-  }
-})
 </script>
 
 <template>
