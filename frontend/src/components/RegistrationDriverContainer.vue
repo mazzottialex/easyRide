@@ -15,12 +15,13 @@ const registerData = ref({
 })
 
 const handleRegister = async () => {
-  console.log("Register:", registerData.value)
   try {
-    await axios.post('http://localhost:3000/api/users/register-driver', registerData.value)
+    const response = await axios.post('http://localhost:3000/api/users/register-driver', registerData.value)
+    localStorage.setItem('token', response.data.token)
+    localStorage.setItem('user', JSON.stringify({ name: response.data.name, email: response.data.email, role: response.data.role }))
     router.push('/home')
   } catch (error) {
-    const message = error?.response?.data?.message || error?.response?.data || 'Errore durante la registrazione';
+    const message = error?.response?.data?.message
     alert(message)
   }
 }

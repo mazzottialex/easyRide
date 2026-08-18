@@ -7,9 +7,10 @@ const router = useRouter();
 const registerData = ref({ name: "", email: "", password: "" })
 
 const handleRegister = async () => {
-  console.log("Register:", registerData.value)
   try {
-    await axios.post('http://localhost:3000/api/users/register', registerData.value);
+    const response = await axios.post('http://localhost:3000/api/users/register', registerData.value);
+    localStorage.setItem('token', response.data.token);
+    localStorage.setItem('user', JSON.stringify({ name: response.data.name, email: response.data.email, role: response.data.role }));
     router.push('/home');
   } catch (error) {
     const message = error?.response?.data?.message || 'Errore durante la registrazione';

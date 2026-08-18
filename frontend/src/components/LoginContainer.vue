@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue"
+import { onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 import axios from "axios"
 
@@ -10,7 +10,7 @@ const handleLogin = async () => {
   try {
     const response = await axios.post('http://localhost:3000/api/users/verify', loginData.value);
     localStorage.setItem('token', response.data.token);
-    localStorage.setItem('user', JSON.stringify(response.data.user));
+    localStorage.setItem('user', JSON.stringify({ name: response.data.name, email: response.data.email, role: response.data.role }));
     router.push('/home');
   } catch (error) {
     const message = error?.response?.data?.message;

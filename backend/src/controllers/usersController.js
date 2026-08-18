@@ -3,6 +3,7 @@ const { vehiclesModel: vehicleModel } = require('../models/vehiclesModel');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
+//register user
 exports.createUser = (req, res) => {
     const { name, email, password } = req.body;
     const salt = crypto.randomBytes(16).toString('hex');
@@ -16,13 +17,15 @@ exports.createUser = (req, res) => {
 
     user.save()
         .then(doc => {
-            res.status(201).json(doc);
+            const token = jwt.sign({ user_Id: doc._id, email: doc.email, role: doc.role }, 'abcabcabc', { expiresIn: '24h' });
+            res.status(201).json({ token: token, name: doc.name, email: doc.email, role: doc.role });
         })
         .catch(err => {
             res.status(500).send(err);
         });
 } 
 
+//register driver
 exports.createDriver = async (req, res) => {
     try {
         const { name, email, password, brand, model, numberPlate, color } = req.body;
@@ -43,13 +46,17 @@ exports.createDriver = async (req, res) => {
             numberPlate,
             color
         });
-        const savedVehicle = await vehicle.save();
-        res.status(201).json({ driver, vehicle: savedVehicle });
+        await vehicle.save();
+
+        const token = jwt.sign({ user_Id: driver._id, email: driver.email, role: driver.role }, 'abcabcabc', { expiresIn: '24h' });
+
+        res.status(201).json({ token: token, name: driver.name, email: driver.email, role: driver.role });
     } catch (err) {
         res.status(500).json(err);
     }
 }
 
+//login
 exports.verifyUser = (req, res) => {
     const { email, password } = req.body;
     userModel.findOne({ email: email })
@@ -62,7 +69,7 @@ exports.verifyUser = (req, res) => {
                 return res.status(401).send('Invalid password');
             }
             const token = jwt.sign({ user_Id: doc._id, email: doc.email, role: doc.role }, 'abcabcabc', { expiresIn: '24h' });
-            res.status(200).json({ token: token, user: doc });
+            res.status(200).json({ token: token, name: doc.name, email: doc.email, role: doc.role });
         })
         .catch(err => {
             res.status(500).send(err);
