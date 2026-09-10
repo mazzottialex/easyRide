@@ -15,12 +15,6 @@ onMounted(() => {
     }
   }
 })
-
-const handleLogout = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  router.push('/login');
-}
 </script>
 
 <template>
@@ -35,9 +29,6 @@ const handleLogout = () => {
         Ciao {{ currentUser.name }}
       </h2>
 
-      <button @click="handleLogout" class="btn btn-outline-danger btn-lg rounded-pill px-5">
-        Logout
-      </button>
     </div>
   </div>
 </template>
