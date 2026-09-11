@@ -7,5 +7,4 @@ import MapContainer from '@/components/MapContainer.vue'
 <template>
   <NavbarContainer />
   <HomeContainer />
-  <MapContainer />
 </template>
