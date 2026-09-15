@@ -3,6 +3,7 @@ import axios from "axios"
 import { onMounted, ref } from "vue"
 import BookingForm from "./form/BookingForm.vue"
 import SelectionLocationForm from "./form/SelectionLocationForm.vue"
+import MapForm from "./form/MapForm.vue"
 
 const currentView = ref('booking')
 
@@ -10,7 +11,8 @@ const bookingData = ref({
   pickup: "",
   dropoff: ""
 })
-const loadingRoute = ref(false)
+const routeData = ref(null)
+const routeError = ref('')
 
 const openPickupMap = () => {
   currentView.value = 'pickup'
@@ -36,7 +38,19 @@ const handleBooking = async () => {
   if (!bookingData.value.pickup || !bookingData.value.dropoff) {
     return
   }
-  currentView.value = 'booking'
+  routeError.value = ''
+  try {
+    const response = await axios.get('http://localhost:3000/api/routing/route', {
+      params: {
+        pickup: bookingData.value.pickup.join(','), //es."123.123,123.123"
+        destination: bookingData.value.dropoff.join(',')
+      }
+    })
+    routeData.value = response.data
+    currentView.value = 'route'
+  } catch (error) {
+    routeError.value = error
+  }
 }
 </script>
 
@@ -44,7 +58,6 @@ const handleBooking = async () => {
   <BookingForm
     v-if="currentView === 'booking'"
     :booking-data="bookingData"
-    :loading="loadingRoute"
     @pickup-click="openPickupMap"
     @dropoff-click="openDropoffMap"
     @submit="handleBooking"
@@ -54,4 +67,11 @@ const handleBooking = async () => {
     :type="currentView === 'pickup'?'pickup':'dropoff'"
     @location-selected="handleLocationSelected"
   />
+  <MapForm
+    v-else-if="currentView === 'route'"
+    :pickup-location="bookingData.pickup"
+    :dropoff-location="bookingData.dropoff"
+    :route-data="routeData"
+  />
+  <p v-if="routeError" class="text-danger text-center mt-3">{{routeError}}</p>
 </template>
