@@ -4,6 +4,8 @@ import { Map } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 const mapElement = ref(null)
+const routePath = ref(null)
+let routeCoordinates = []
 let map = null
 
 const props = defineProps({
@@ -12,7 +14,24 @@ const props = defineProps({
     default: null
   }
 })
-const route = () => routeData?.route
+const route = () => props.routeData?.route
+
+const updateRouteOverlay = () => {
+  routePath.value = routeCoordinates.map((coordinate, index) => {
+      const point = map.project(coordinate)
+      return `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`
+    }).join(' ')
+}
+
+const drawRoute = () => {
+  const geometry = route()?.geometry
+  const coordinates = geometry.coordinates.map(([longitude, latitude]) => [
+    Number(longitude),
+    Number(latitude)
+  ])
+  routeCoordinates = coordinates
+  updateRouteOverlay()
+}
 
 onMounted(() => {
   map = new Map({
@@ -38,6 +57,8 @@ onMounted(() => {
     center: [12.244, 44.138],
     zoom: 12
   })
+  map.once('load', drawRoute)
+  map.on('move', updateRouteOverlay)
 })
       
 onBeforeUnmount(() => {
@@ -56,12 +77,32 @@ onBeforeUnmount(() => {
               Tempo stimato: {{route()?.duration/60 | Math.round}} minuti
               Distanza stimata: {{(route()?.distance/1000).toFixed(1)}} km  
             </h2>
-            <div
-                ref="mapElement"
+            <div ref="mapElement"
                 class="map-container"
-                style="height: 400px;"
-            ></div>
+                style="height: 400px;">
+              <svg class="route-svg">
+                <path :d="routePath" />
+              </svg>
+            </div>
           </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+.route-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+.route-svg path {
+  fill: none;
+  stroke: red;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+</style>
