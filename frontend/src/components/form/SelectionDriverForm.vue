@@ -57,6 +57,8 @@ onMounted(() => {
                             <span class="d-grid gap-1">
                                 <strong>{{ driver.userId?.name }}</strong>
                                 <small class="text-secondary">{{ driver.userId?.email }}</small>
+                                <small class="text-secondary">{{ driver.vehicle?.brand }} {{ driver.vehicle?.model }}</small>
+                                <small class="text-secondary">Posti disponibili: {{ driver.vehicle?.seatsAvailable }}</small>
                             </span>
                             <span v-if="selectedDriver?._id === driver._id" class="ms-auto text-primary fw-bold">Selezionato</span>
                         </button>
