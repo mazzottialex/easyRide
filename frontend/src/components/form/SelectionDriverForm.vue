@@ -1,0 +1,64 @@
+<script setup>
+import axios from 'axios'
+import { onMounted, ref } from 'vue'
+
+const emit = defineEmits(['driver-selected'])
+const availableDrivers = ref([])
+const selectedDriver = ref(null)
+const errorMessage = ref(null)
+
+const loadDrivers = async () => {
+
+    try {
+        const response = await axios.get('http://localhost:3000/api/drivers/available')
+        availableDrivers.value = Array.isArray(response.data) ? response.data : []
+    } catch (error) {
+        errorMessage.value = error.response?.data?.error
+    } 
+}
+const selectDriver = (driver) => {
+    selectedDriver.value = driver
+    emit('driver-selected', driver)
+}
+onMounted(() => {
+    loadDrivers()
+})
+</script>
+
+<template>
+    <div class="col-md-8 col-lg-6 mx-auto">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+            <div class="card-body p-4">
+                <h2 class="h5 text-center text-dark fw-bold mb-3">
+                    Scegli un autista
+                </h2>
+                <div v-if="errorMessage" class="alert alert-danger" role="alert">
+                    {{ errorMessage }}
+                    <button type="button" class="btn btn-link p-0" @click="loadDrivers">Riprova</button>
+                </div>
+                <div v-else-if="availableDrivers.length === 0" class="alert alert-secondary" role="status">
+                    Nessun autista disponibile
+                </div>
+                <div v-else>
+                    <div class="d-grid gap-2" role="radiogroup" aria-label="Autisti disponibili">
+                        <button
+                            v-for="driver in availableDrivers"
+                            :key="driver._id"
+                            type="button"
+                            class="btn btn-light border d-flex align-items-center gap-3 text-start p-3"
+                            :class="selectedDriver?._id === driver._id ? 'border-primary bg-primary-subtle' : 'border-secondary-subtle'"
+                            role="radio"
+                            @click="selectDriver(driver)"
+                        >
+                            <span class="d-grid gap-1">
+                                <strong>{{ driver.userId?.name }}</strong>
+                                <small class="text-secondary">{{ driver.userId?.email }}</small>
+                            </span>
+                            <span v-if="selectedDriver?._id === driver._id" class="ms-auto text-primary fw-bold">Selezionato</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

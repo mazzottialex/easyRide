@@ -1,5 +1,6 @@
 const { userModel } = require('../models/usersModel');
-const { vehiclesModel: vehicleModel } = require('../models/vehiclesModel');
+const { drivesModel } = require('../models/driversModel');
+const { vehicleModel } = require('../models/vehiclesModel');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
@@ -38,7 +39,12 @@ exports.createDriver = async (req, res) => {
             hash,
             role: 'driver'
         });
-        const driver = await user.save();
+        await user.save();
+        const driver = new driverModel({
+            userId: user._id,
+            status: 'unavailable'
+        });
+        await driver.save();
         const vehicle = new vehicleModel({
             driverId: driver._id,
             brand,
@@ -48,9 +54,9 @@ exports.createDriver = async (req, res) => {
         });
         await vehicle.save();
 
-        const token = jwt.sign({ user_Id: driver._id, email: driver.email, role: driver.role }, 'abcabcabc', { expiresIn: '24h' });
+        const token = jwt.sign({ user_Id: user._id, email: user.email, role: user.role }, 'abcabcabc', { expiresIn: '24h' });
 
-        res.status(201).json({ token: token, name: driver.name, email: driver.email, role: driver.role });
+        res.status(201).json({ token: token, name: user.name, email: user.email, role: user.role });
     } catch (err) {
         res.status(500).json(err);
     }

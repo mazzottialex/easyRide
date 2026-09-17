@@ -4,6 +4,7 @@ const userRoutes = require('./src/routes/userRoutes');
 const vehicleRoutes = require('./src/routes/vehicleRoutes');
 const rideRoutes = require('./src/routes/rideRoutes');
 const routingRoutes = require('./src/routes/routingRoutes');
+const driverRoutes = require('./src/routes/driverRoutes');
 const cors = require('cors');
 
 mongoose.connect('mongodb://localhost:27017/easyride')
@@ -22,6 +23,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/routing', routingRoutes);
+app.use('/api/drivers', driverRoutes);
 
 app.listen(3000, () => {
     console.log('Server listening on port 3000');

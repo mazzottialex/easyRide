@@ -4,6 +4,7 @@ import { onMounted, ref } from "vue"
 import BookingForm from "./form/BookingForm.vue"
 import SelectionLocationForm from "./form/SelectionLocationForm.vue"
 import MapForm from "./form/MapForm.vue"
+import SelectionDriverForm from "./form/SelectionDriverForm.vue"
 
 const currentView = ref('booking')
 
@@ -12,7 +13,8 @@ const bookingData = ref({
   dropoff: ""
 })
 const routeData = ref(null)
-const routeError = ref('')
+const routeError = ref(null)
+const selectedDriver = ref(null)
 
 const openPickupMap = () => {
   currentView.value = 'pickup'
@@ -52,6 +54,9 @@ const handleBooking = async () => {
     routeError.value = error
   }
 }
+const handleDriverSelected = (driver) => {
+  selectedDriver.value = driver
+}
 </script>
 
 <template>
@@ -67,11 +72,16 @@ const handleBooking = async () => {
     :type="currentView === 'pickup'?'pickup':'dropoff'"
     @location-selected="handleLocationSelected"
   />
-  <MapForm
-    v-else-if="currentView === 'route'"
-    :pickup-location="bookingData.pickup"
-    :dropoff-location="bookingData.dropoff"
-    :route-data="routeData"
-  />
+  <template v-else-if="currentView === 'route'">
+    <MapForm
+      :pickup-location="bookingData.pickup"
+      :dropoff-location="bookingData.dropoff"
+      :route-data="routeData"
+    />
+    <SelectionDriverForm
+      class="mt-4"
+      @driver-selected="handleDriverSelected"
+    />
+  </template>
   <p v-if="routeError" class="text-danger text-center mt-3">{{routeError}}</p>
 </template>
