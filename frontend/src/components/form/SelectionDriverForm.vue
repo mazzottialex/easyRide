@@ -20,6 +20,10 @@ const selectDriver = (driver) => {
     selectedDriver.value = driver
     emit('driver-selected', driver)
 }
+
+const requestDriver = () => {
+}
+
 onMounted(() => {
     loadDrivers()
 })
@@ -55,6 +59,15 @@ onMounted(() => {
                                 <small class="text-secondary">{{ driver.userId?.email }}</small>
                             </span>
                             <span v-if="selectedDriver?._id === driver._id" class="ms-auto text-primary fw-bold">Selezionato</span>
+                        </button>
+                    </div>
+                    <div v-if="selectedDriver" class="alert alert-primary mt-3 mb-0 d-flex justify-content-between align-items-center gap-3" role="status">
+                        <div>
+                            <div class="fw-bold small">Conferma richiesta</div>
+                                Vuoi inviare la richiesta a {{ selectedDriver.userId?.name }}?
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm text-nowrap" @click="requestDriver">
+                            Conferma richiesta
                         </button>
                     </div>
                 </div>
