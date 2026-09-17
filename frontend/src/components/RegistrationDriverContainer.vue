@@ -41,7 +41,6 @@ const handleRegister = async () => {
         
         <form @submit.prevent="handleRegister">
           
-          <!-- Sezione Dati Personali -->
           <h5 class="text-primary mb-3">Dati Personali</h5>
           
           <div class="mb-3">
@@ -59,7 +58,6 @@ const handleRegister = async () => {
             <input type="password" class="form-control" v-model="registerData.password" required>
           </div>
 
-          <!-- Sezione Dati Auto -->
           <h5 class="text-primary mt-4 mb-3">Dati Veicolo</h5>
           
           <div class="row">
@@ -76,7 +74,7 @@ const handleRegister = async () => {
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Targa</label>
-              <input type="text" class="form-control text-uppercase" v-model="registerData.numberPlate">
+              <input type="text" class="form-control text-uppercase" v-model="registerData.numberPlate" required>
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Colore</label>

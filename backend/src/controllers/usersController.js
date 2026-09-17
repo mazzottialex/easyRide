@@ -1,5 +1,5 @@
 const { userModel } = require('../models/usersModel');
-const { drivesModel } = require('../models/driversModel');
+const { driverModel } = require('../models/driversModel');
 const { vehicleModel } = require('../models/vehiclesModel');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
@@ -30,6 +30,14 @@ exports.createUser = (req, res) => {
 exports.createDriver = async (req, res) => {
     try {
         const { name, email, password, brand, model, numberPlate, color } = req.body;
+
+        const existingName = await userModel.findOne({ name: name });
+        const existingEmail = await userModel.findOne({ email: email });
+        if (existingName || existingEmail) {
+            return res.status(409).json({
+                message: 'Nome o email gia utilizzati'
+            });
+        }
         const salt = crypto.randomBytes(16).toString('hex');
         const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
         const user = new userModel({
