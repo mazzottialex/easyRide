@@ -35,7 +35,7 @@ exports.createDriver = async (req, res) => {
         const existingEmail = await userModel.findOne({ email: email });
         if (existingName || existingEmail) {
             return res.status(409).json({
-                message: 'Nome o email gia utilizzati'
+                message: 'Nome o email già utilizzati'
             });
         }
         const salt = crypto.randomBytes(16).toString('hex');
