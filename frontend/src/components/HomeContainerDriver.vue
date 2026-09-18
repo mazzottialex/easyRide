@@ -2,6 +2,7 @@
 import axios from 'axios'
 import { onMounted, ref } from 'vue'
 import DriverStatusForm from './formDriver/DriverStatusForm.vue'
+import RequestForm from './formDriver/RequestForm.vue'
 
 const isOnline = ref(false)
 const currentView = ref('offline')
@@ -37,5 +38,6 @@ onMounted(() => {
       :is-online="isOnline"
       @toggle-online="toggleOnlineStatus"
     />
+    <RequestForm v-if="currentView === 'online'" class="mt-4" />
   </main>
 </template>

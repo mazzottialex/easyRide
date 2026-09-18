@@ -27,14 +27,16 @@ onMounted(() => {
   <div class="col-12 col-md-8 col-lg-6 mx-auto">
     <div class="card border-0 shadow-sm rounded-4">
       <div class="card-body p-4 p-md-5 text-center">
-        <h1 class="h3 fw-bold text-dark mb-2">Ciao {{ currentUser?.name }}</h1>
-        <div class="mb-4">
-          <span
-            class="badge rounded-pill px-3 py-2"
-            :class="props.isOnline ? 'text-bg-success' : 'text-bg-secondary'"
-          >
-            {{ props.isOnline ? 'Online' : 'Offline' }}
-          </span>
+        <div class="d-flex gap-3">
+          <h1 class="h3 fw-bold text-dark mb-2">Ciao {{ currentUser?.name }}</h1>
+          <div class="mb-4">
+            <span
+              class="badge rounded-pill px-3 py-2"
+              :class="props.isOnline ? 'text-bg-success' : 'text-bg-secondary'"
+            >
+              {{ props.isOnline ? 'Online' : 'Offline' }}
+            </span>
+          </div>
         </div>
         <button
           type="button"
