@@ -1,10 +1,10 @@
 <script setup>
 import axios from "axios"
 import { onMounted, ref } from "vue"
-import BookingForm from "./form/BookingForm.vue"
-import SelectionLocationForm from "./form/SelectionLocationForm.vue"
-import MapForm from "./form/MapForm.vue"
-import SelectionDriverForm from "./form/SelectionDriverForm.vue"
+import BookingForm from "./formUser/BookingForm.vue"
+import SelectionLocationForm from "./formUser/SelectionLocationForm.vue"
+import MapForm from "./formUser/MapForm.vue"
+import SelectionDriverForm from "./formUser/SelectionDriverForm.vue"
 
 const currentView = ref('booking')
 
