@@ -26,3 +26,19 @@ exports.getAvailableDrivers = async (req, res) => {
         })
 	}
 };
+
+exports.setDriverStatus = async (req, res) => {
+    try {
+        const { driverId } = req.params;
+        const { status } = req.body;
+
+        const driver = await driverModel.findOneAndUpdate(
+            { userId: driverId},
+            { status: status },
+            { new: true }
+        );
+        return res.status(200).json(driver);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};

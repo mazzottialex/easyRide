@@ -19,7 +19,7 @@ exports.createUser = (req, res) => {
     user.save()
         .then(doc => {
             const token = jwt.sign({ user_Id: doc._id, email: doc.email, role: doc.role }, 'abcabcabc', { expiresIn: '24h' });
-            res.status(201).json({ token: token, name: doc.name, email: doc.email, role: doc.role });
+            res.status(201).json({ _id: doc._id, token: token, name: doc.name, email: doc.email, role: doc.role });
         })
         .catch(err => {
             res.status(500).send(err);
@@ -64,7 +64,7 @@ exports.createDriver = async (req, res) => {
 
         const token = jwt.sign({ user_Id: user._id, email: user.email, role: user.role }, 'abcabcabc', { expiresIn: '24h' });
 
-        res.status(201).json({ token: token, name: user.name, email: user.email, role: user.role });
+        res.status(201).json({ _id: user._id, token: token, name: user.name, email: user.email, role: user.role });
     } catch (err) {
         res.status(500).json(err);
     }
@@ -83,7 +83,7 @@ exports.verifyUser = (req, res) => {
                 return res.status(401).send('Invalid password');
             }
             const token = jwt.sign({ user_Id: doc._id, email: doc.email, role: doc.role }, 'abcabcabc', { expiresIn: '24h' });
-            res.status(200).json({ token: token, name: doc.name, email: doc.email, role: doc.role });
+            res.status(200).json({ _id: doc._id, token: token, name: doc.name, email: doc.email, role: doc.role });
         })
         .catch(err => {
             res.status(500).send(err);
