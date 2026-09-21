@@ -1,16 +1,24 @@
 <script setup>
 import axios from 'axios'
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { getSocket } from '../../services/socket'
 
 const emit = defineEmits(['driver-selected'])
 const availableDrivers = ref([])
 const selectedDriver = ref(null)
 const errorMessage = ref(null)
+const socket = getSocket()
 
 const loadDrivers = async () => {
-
     try {
-        const response = await axios.get('http://localhost:3000/api/drivers/available')
+        const response = await axios.get(
+            'http://localhost:3000/api/drivers/available',
+            {
+                headers: {
+                    Authorization:
+                        `Bearer ${localStorage.getItem('token')}`
+                }
+            })
         availableDrivers.value = Array.isArray(response.data) ? response.data : []
     } catch (error) {
         errorMessage.value = error.response?.data?.error
@@ -26,6 +34,10 @@ const requestDriver = () => {
 
 onMounted(() => {
     loadDrivers()
+    socket.on('driver:status-changed', loadDrivers)
+})
+onBeforeUnmount(() => {
+    socket.off('driver:status-changed', loadDrivers)
 })
 </script>
 

@@ -6,6 +6,8 @@ const rideRoutes = require('./src/routes/rideRoutes');
 const routingRoutes = require('./src/routes/routingRoutes');
 const driverRoutes = require('./src/routes/driverRoutes');
 const cors = require('cors');
+const http = require('http');
+const { initializeSocket } = require('./src/socket/socketHandler');
 
 mongoose.connect('mongodb://localhost:27017/easyride')
   .then(() => console.log('MongoDB connected to easyride'))
@@ -25,6 +27,10 @@ app.use('/api/rides', rideRoutes);
 app.use('/api/routing', routingRoutes);
 app.use('/api/drivers', driverRoutes);
 
-app.listen(3000, () => {
+const server = http.createServer(app);
+const io = initializeSocket(server);
+app.set('io', io);
+
+server.listen(3000, () => {
     console.log('Server listening on port 3000');
 });

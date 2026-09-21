@@ -1,26 +1,49 @@
 <script setup>
 import axios from 'axios'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import DriverStatusForm from './formDriver/DriverStatusForm.vue'
 import RequestForm from './formDriver/RequestForm.vue'
 
-const isOnline = ref(false)
+const status = ref('unavailable')
 const currentView = ref('offline')
 const currentUser = ref(null)
+const isOnline = computed(() => status.value === 'available')
 
-const toggleOnlineStatus = async () => {
-  try {
-    await axios.patch(`http://localhost:3000/api/drivers/${currentUser.value._id}/status`, {
-      status: !isOnline.value ? 'available' : 'unavailable'
-    })
-    isOnline.value = !isOnline.value
-    currentView.value = isOnline.value ? 'online' : 'offline'
-  } catch (error) {
-    alert(error?.response?.data?.message)
-  }
+const loadStatus = async () => {
+  const response = await axios.get(
+    'http://localhost:3000/api/drivers/status',
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    }
+  )
+  status.value = response.data.status
+  currentView.value = isOnline.value ? 'online' : 'offline'
 }
 
-onMounted(() => {
+const toggleStatus = async () => {
+    const newStatus =
+        status.value === 'available' ? 'unavailable' : 'available'
+    const response = await axios.patch(
+        'http://localhost:3000/api/drivers/status',
+        {
+            status: newStatus
+        },
+        {
+            headers: {
+                Authorization:
+                    `Bearer ${localStorage.getItem('token')}`
+            }
+        }
+    )
+
+    status.value = response.data.status
+    currentView.value = isOnline.value ? 'online' : 'offline'
+}
+
+onMounted(async () => {
+  await loadStatus()
   const user = localStorage.getItem('user');
   if (user) {
     try {
@@ -36,7 +59,7 @@ onMounted(() => {
   <main class="container py-5">
     <DriverStatusForm
       :is-online="isOnline"
-      @toggle-online="toggleOnlineStatus"
+      @toggle-online="toggleStatus"
     />
     <RequestForm v-if="currentView === 'online'" class="mt-4" />
   </main>
