@@ -4,9 +4,15 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { getSocket } from '../../services/socket'
 
 const emit = defineEmits(['driver-selected'])
+const props = defineProps({
+    pickup: { type: [String, Array], required: true },
+    dropoff: { type: [String, Array], required: true },
+    price: { type: Number, required: true }
+})
 const availableDrivers = ref([])
 const selectedDriver = ref(null)
 const errorMessage = ref(null)
+const requestSent = ref(false)
 const socket = getSocket()
 
 const loadDrivers = async () => {
@@ -29,7 +35,27 @@ const selectDriver = (driver) => {
     emit('driver-selected', driver)
 }
 
-const requestDriver = () => {
+const requestDriver = async () => {
+    if (!selectedDriver.value) {
+        return
+    }
+
+    const response = await axios.post(
+        'http://localhost:3000/api/rides',
+        {
+            driverId: selectedDriver.value._id,
+            pickup: props.pickup.join(','),
+            dropoff: props.dropoff.join(','),
+            price: props.price
+        },
+        {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+        }
+    )
+    requestSent.value = true
+    emit('ride-created', response.data)
 }
 
 onMounted(() => {
@@ -75,7 +101,7 @@ onBeforeUnmount(() => {
                             <span v-if="selectedDriver?._id === driver._id" class="ms-auto text-primary fw-bold">Selezionato</span>
                         </button>
                     </div>
-                    <div v-if="selectedDriver" class="alert alert-primary mt-3 mb-0 d-flex justify-content-between align-items-center gap-3" role="status">
+                    <div v-if="selectedDriver && !requestSent" class="alert alert-primary mt-3 mb-0 d-flex justify-content-between align-items-center gap-3" role="status">
                         <div>
                             <div class="fw-bold small">Conferma richiesta</div>
                                 Vuoi inviare la richiesta a {{ selectedDriver.userId?.name }}?
@@ -83,6 +109,9 @@ onBeforeUnmount(() => {
                         <button type="button" class="btn btn-primary btn-sm text-nowrap" @click="requestDriver">
                             Conferma richiesta
                         </button>
+                    </div>
+                    <div v-if="requestSent" class="alert alert-success mt-3 mb-0" role="status">
+                        Richiesta inviata. Attendi la risposta del driver.
                     </div>
                 </div>
             </div>

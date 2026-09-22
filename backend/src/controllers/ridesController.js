@@ -19,6 +19,8 @@ exports.createRide = async (req, res) => {
 			price
 		});
         const createdRide = await populateRide(ridesModel.findById(ride._id));
+		const io = req.app.get('io');
+		io?.to(`driver:${driverId}`).emit('ride:request', createdRide);
 		return res.status(201).json(createdRide);
 	} catch (error) {
 		return res.status(500).json({ error: error.message });
@@ -36,7 +38,14 @@ exports.getRideById = async (req, res) => {
 	} catch (error) {
 		return res.status(500).json({ error: error.message });
 	}
-};
+}
+
+const populateRide = query => query
+	.populate('passengerId', 'name email')
+	.populate({
+		path: 'driverId',
+		populate: { path: 'userId', select: 'name email' }
+	});
 
 exports.updateRideStatus = async (req, res) => {
 	try {
@@ -49,6 +58,9 @@ exports.updateRideStatus = async (req, res) => {
 		ride.status = status;
 		await ride.save();
 		const updatedRide = await populateRide(ridesModel.findById(ride._id));
+		const io = req.app.get('io');
+		io?.to(`user:${ride.passengerId}`).emit('ride:status-changed', updatedRide);
+		io?.to(`driver:${ride.driverId}`).emit('ride:status-changed', updatedRide);
 		return res.status(200).json(updatedRide);;
 	} catch (error) {
 		return res.status(500).json({ error: error.message });

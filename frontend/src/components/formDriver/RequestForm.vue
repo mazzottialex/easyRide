@@ -1,32 +1,68 @@
 <script setup>
-import { ref } from 'vue'
+import axios from 'axios'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { getSocket } from '../../services/socket'
 
-const requests = ref([
-  {
-    id: 1,
-    pickup: '12.5435, 41.14334',
-    destination: '12.2435, 41.15334',
-    passengers: 1
-  },
-  {
-    id: 2,
-    pickup: '12.5035, 41.13334',
-    destination: '12.2835, 41.16334',
-    passengers: 2
+const requests = ref([])
+const activeRides = ref([])
+const socket = getSocket()
+
+const addRequest = (request) => {
+  if (request.status !== 'pending') {
+    updateActiveRide(request)
+    return
   }
-])
-
-const acceptRequest = () => {
+  if (!requests.value.some(currentRequest => currentRequest._id === request._id)) {
+    requests.value.push(request)
+  }
 }
 
-const rejectRequest = () => {
+const updateActiveRide = (ride) => {
+  requests.value = requests.value.filter(request => request._id !== ride._id)
+  if (ride.status === 'cancelled' || ride.status === 'completed') {
+    activeRides.value = activeRides.value.filter(currentRide => currentRide._id !== ride._id)
+    return
+  }
+  const index = activeRides.value.findIndex(currentRide => currentRide._id === ride._id)
+  if (index === -1) {
+    activeRides.value.push(ride)
+  } else {
+    activeRides.value[index] = ride
+  }
 }
+
+const respondToRequest = async (request, status) => {
+  const response = await axios.patch(
+    `http://localhost:3000/api/rides/${request._id}/status`,
+    { status },
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    }
+  )
+  updateActiveRide(response.data)
+}
+
+const acceptRequest = request => respondToRequest(request, 'accepted')
+const rejectRequest = request => respondToRequest(request, 'cancelled')
+const startRide = ride => respondToRequest(ride, 'in_progress')
+const completeRide = ride => respondToRequest(ride, 'completed')
+
+onMounted(() => {
+  socket.on('ride:request', addRequest)
+  socket.on('ride:status-changed', updateActiveRide)
+})
+onBeforeUnmount(() => {
+  socket.off('ride:request', addRequest)
+  socket.off('ride:status-changed', updateActiveRide)
+})
 </script>
 
 <template>
   <div class="col-12 col-md-8 col-lg-6 mx-auto">
     <div v-if="requests.length > 0">
-      <div v-for="request in requests" :key="request.id" class="card border-0 shadow-sm rounded-4 mb-3">
+      <div v-for="request in requests" :key="request._id" class="card border-0 shadow-sm rounded-4 mb-3">
         <div class="card-body p-4 p-md-5">
           <h2 class="h4 fw-bold mb-4 text-center">Nuova corsa</h2>
           <div class="mb-3">
@@ -35,18 +71,44 @@ const rejectRequest = () => {
           </div>
           <div class="mb-3">
             <label class="form-label">Destinazione</label>
-            <input :value="request.destination" class="form-control" type="text" readonly />
+            <input :value="request.dropoff" class="form-control" type="text" readonly />
           </div>
           <div class="mb-4">
             <label class="form-label">Passeggeri</label>
-            <input :value="request.passengers" class="form-control" type="number" readonly />
+            <input value="1" class="form-control" type="number" readonly />
           </div>
           <div class="d-flex gap-2">
-            <button type="button" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold" @click="acceptRequest(request.id)">
+            <button type="button" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold" @click="acceptRequest(request)">
               Accetta
             </button>
-            <button type="button" class="btn btn-outline-danger btn-lg w-100 rounded-pill fw-bold" @click="rejectRequest(request.id)">
+            <button type="button" class="btn btn-outline-danger btn-lg w-100 rounded-pill fw-bold" @click="rejectRequest(request)">
               Rifiuta
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-if="activeRides.length > 0">
+      <div v-for="ride in activeRides" :key="ride._id" class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-body p-4">
+          <h2 class="h5 fw-bold">Corsa {{ ride.status }}</h2>
+          <p class="mb-3 text-secondary">{{ ride.pickup }} → {{ ride.dropoff }}</p>
+          <div class="d-flex gap-2">
+            <button
+              v-if="ride.status === 'accepted'"
+              type="button"
+              class="btn btn-primary w-100 rounded-pill fw-bold"
+              @click="startRide(ride)"
+            >
+              Inizia corsa
+            </button>
+            <button
+              v-if="ride.status === 'in_progress'"
+              type="button"
+              class="btn btn-success w-100 rounded-pill fw-bold"
+              @click="completeRide(ride)"
+            >
+              Completa corsa
             </button>
           </div>
         </div>
