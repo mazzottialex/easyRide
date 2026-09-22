@@ -1,6 +1,7 @@
 <script setup>
 import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import DriverStatusForm from './formDriver/DriverStatusForm.vue'
 import RequestForm from './formDriver/RequestForm.vue'
 
@@ -9,37 +10,49 @@ const currentView = ref('offline')
 const currentUser = ref(null)
 const isOnline = computed(() => status.value === 'available')
 
+const router = useRouter()
+
+const handleRequestError = error => {
+  if (error.response?.status === 401) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    router.push('/login')
+  }
+}
 const loadStatus = async () => {
-  const response = await axios.get(
-    'http://localhost:3000/api/drivers/status',
-    {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+  try {
+    const response = await axios.get(
+      'http://localhost:3000/api/drivers/status',
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
       }
-    }
-  )
-  status.value = response.data.status
-  currentView.value = isOnline.value ? 'online' : 'offline'
+    )
+    status.value = response.data.status
+    currentView.value = isOnline.value ? 'online' : 'offline'
+  } catch (error) {
+    handleRequestError(error)
+  }
 }
 
 const toggleStatus = async () => {
-    const newStatus =
-        status.value === 'available' ? 'unavailable' : 'available'
+  try {
+    const newStatus = status.value === 'available' ? 'unavailable' : 'available'
     const response = await axios.patch(
-        'http://localhost:3000/api/drivers/status',
-        {
-            status: newStatus
-        },
-        {
-            headers: {
-                Authorization:
-                    `Bearer ${localStorage.getItem('token')}`
-            }
+      'http://localhost:3000/api/drivers/status',
+      { status: newStatus },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         }
+      }
     )
-
     status.value = response.data.status
     currentView.value = isOnline.value ? 'online' : 'offline'
+  } catch (error) {
+    handleRequestError(error)
+  }
 }
 
 onMounted(async () => {

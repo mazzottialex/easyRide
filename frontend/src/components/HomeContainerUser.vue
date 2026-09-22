@@ -1,6 +1,7 @@
 <script setup>
 import axios from "axios"
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
+import { useRouter } from 'vue-router'
 import BookingForm from "./formUser/BookingForm.vue"
 import SelectionLocationForm from "./formUser/SelectionLocationForm.vue"
 import MapForm from "./formUser/MapForm.vue"
@@ -18,6 +19,7 @@ const routeError = ref(null)
 const selectedDriver = ref(null)
 const activeRide = ref(null)
 const socket = getSocket()
+const router = useRouter()
 
 const ridePrice = computed(() => {
   return 10
@@ -51,6 +53,13 @@ const handleRideStatusChanged = (ride) => {
   }
 }
 
+const handleRequestError = error => {
+  if (error.response?.status === 401) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    router.push('/login')
+  }
+}
 
 const handleBooking = async () => {
   if (!bookingData.value.pickup || !bookingData.value.dropoff) {
@@ -67,7 +76,7 @@ const handleBooking = async () => {
     routeData.value = response.data
     currentView.value = 'route'
   } catch (error) {
-    routeError.value = error
+    handleRequestError(error)
   }
 }
 const handleDriverSelected = (driver) => {
