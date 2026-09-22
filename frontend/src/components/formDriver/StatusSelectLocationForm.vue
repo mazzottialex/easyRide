@@ -6,10 +6,14 @@ const props = defineProps({
   isOnline: {
     type: Boolean,
     required: true
+  },
+  location: {
+    type: Array,
+    default: null
   }
 })
 
-const emit = defineEmits(['toggle-online'])
+const emit = defineEmits(['toggle-online', 'select-location'])
 
 onMounted(() => {
   const user = localStorage.getItem('user');
@@ -41,10 +45,25 @@ onMounted(() => {
         <button
           type="button"
           class="btn btn-primary btn-lg w-100 rounded-pill fw-bold"
+          :disabled="!props.isOnline && !props.location"
           @click="emit('toggle-online')"
         >
           {{ props.isOnline ? 'Vai offline' : 'Vai online' }}
         </button>
+
+        <button
+          type="button"
+          class="btn btn-outline-primary btn-lg w-100 rounded-pill fw-bold mt-2"
+          @click="emit('select-location')"
+        >
+          Seleziona posizione
+        </button>
+        <p v-if="props.location" class="text-secondary mt-3 mb-0">
+          Posizione: {{ props.location.join(', ') }}
+        </p>
+        <p v-else class="text-danger mt-3 mb-0">
+          Seleziona la posizione per andare online
+        </p>
       </div>
     </div>
   </div>

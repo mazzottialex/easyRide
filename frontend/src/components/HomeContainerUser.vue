@@ -3,7 +3,7 @@ import axios from "axios"
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
 import { useRouter } from 'vue-router'
 import BookingForm from "./formUser/BookingForm.vue"
-import SelectionLocationForm from "./formUser/SelectionLocationForm.vue"
+import SelectionLocationForm from "./SelectionLocationForm.vue/index.js"
 import MapForm from "./formUser/MapForm.vue"
 import SelectionDriverForm from "./formUser/SelectionDriverForm.vue"
 import { getSocket } from '../services/socket'

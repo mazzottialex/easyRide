@@ -2,12 +2,14 @@
 import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import DriverStatusForm from './formDriver/DriverStatusForm.vue'
+import DriverStatusForm from './formDriver/StatusSelectLocationForm.vue/index.js'
 import RequestForm from './formDriver/RequestForm.vue'
+import SelectionLocationForm from './SelectionLocationForm.vue/index.js'
 
 const status = ref('unavailable')
 const currentView = ref('offline')
 const currentUser = ref(null)
+const driverLocation = ref(null)
 const isOnline = computed(() => status.value === 'available')
 
 const router = useRouter()
@@ -37,6 +39,9 @@ const loadStatus = async () => {
 }
 
 const toggleStatus = async () => {
+  if (!driverLocation.value && status.value !== 'available') {
+    return
+  }
   try {
     const newStatus = status.value === 'available' ? 'unavailable' : 'available'
     const response = await axios.patch(
@@ -55,6 +60,18 @@ const toggleStatus = async () => {
   }
 }
 
+const openLocationSelection = () => {
+  currentView.value = 'selectionLocation'
+}
+
+const handleLocationSelected = coordinates => {
+  driverLocation.value = coordinates
+  if(status.value === 'available')
+    currentView.value = 'online'
+  else
+    currentView = 'offline'
+}
+
 onMounted(async () => {
   await loadStatus()
   const user = localStorage.getItem('user');
@@ -71,8 +88,15 @@ onMounted(async () => {
 <template>
   <main class="container py-5">
     <DriverStatusForm
+      v-if="currentView !== 'selectionLocation'"
       :is-online="isOnline"
+      :location="driverLocation"
       @toggle-online="toggleStatus"
+      @select-location="openLocationSelection"
+    />
+    <SelectionLocationForm v-else
+      type="driver"
+      @location-selected="handleLocationSelected"
     />
     <RequestForm v-if="currentView === 'online'" class="mt-4" />
   </main>

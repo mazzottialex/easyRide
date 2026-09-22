@@ -54,7 +54,7 @@ onBeforeUnmount(() => {
         <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
           <div class="card-body p-3">
             <h2 class="h5 text-center text-dark fw-bold mb-3">
-              Scegli {{type === 'pickup'?'punto di partenza':'destinazione'}}
+              Scegli {{ type === 'pickup' ? 'punto di partenza' : type === 'dropoff' ? 'destinazione' : 'posizione corrente' }}
             </h2>
             <div
                 ref="mapElement"
