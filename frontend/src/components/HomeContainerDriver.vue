@@ -2,9 +2,9 @@
 import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import DriverStatusForm from './formDriver/StatusSelectLocationForm.vue/index.js'
+import DriverStatusForm from './formDriver/StatusSelectLocationForm.vue'
 import RequestForm from './formDriver/RequestForm.vue'
-import SelectionLocationForm from './SelectionLocationForm.vue/index.js'
+import SelectionLocationForm from './SelectionLocationForm.vue'
 
 const status = ref('unavailable')
 const currentView = ref('offline')
@@ -69,7 +69,7 @@ const handleLocationSelected = coordinates => {
   if(status.value === 'available')
     currentView.value = 'online'
   else
-    currentView = 'offline'
+    currentView.value = 'offline'
 }
 
 onMounted(async () => {
