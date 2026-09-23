@@ -5,11 +5,14 @@ import { useRouter } from 'vue-router'
 import DriverStatusForm from './formDriver/StatusSelectLocationForm.vue'
 import RequestForm from './formDriver/RequestForm.vue'
 import SelectionLocationForm from './SelectionLocationForm.vue'
+import MapForm from './formUser/MapForm.vue/index.js'
 
 const status = ref('unavailable')
 const currentView = ref('offline')
 const currentUser = ref(null)
 const driverLocation = ref(null)
+const driverRouteData = ref(null)
+const driverRequest = ref(null)
 const isOnline = computed(() => status.value === 'available')
 
 const router = useRouter()
@@ -72,6 +75,12 @@ const handleLocationSelected = coordinates => {
     currentView.value = 'offline'
 }
 
+const showDriverRoute = request => {
+  driverRequest.value = request
+  driverRouteData.value = { route: request.driverRoute || request.rideRoute }
+  currentView.value = 'map'
+}
+
 onMounted(async () => {
   await loadStatus()
   const user = localStorage.getItem('user');
@@ -88,20 +97,29 @@ onMounted(async () => {
 <template>
   <main class="container py-5">
     <DriverStatusForm
-      v-if="currentView !== 'selectionLocation'"
+      v-if="currentView !== 'selectionLocation' && currentView !== 'map'"
       :is-online="isOnline"
       :location="driverLocation"
       @toggle-online="toggleStatus"
       @select-location="openLocationSelection"
     />
-    <SelectionLocationForm v-else
+    <SelectionLocationForm 
+      v-if="currentView == 'selectionLocation'"
       type="driver"
       @location-selected="handleLocationSelected"
     />
+    <MapForm
+      v-if="isOnline || currentView === 'map'"
+      :route-data="driverRouteData"
+      :driver-location="driverLocation"
+      :pickup-location="driverRequest?.pickup"
+      :dropoff-location="driverRequest?.dropoff"
+    />
     <RequestForm
-      v-if="currentView === 'online'"
+      v-if="isOnline || currentView === 'map'"
       :driver-location="driverLocation"
       class="mt-4"
+      @route-ready="showDriverRoute"
     />
   </main>
 </template>

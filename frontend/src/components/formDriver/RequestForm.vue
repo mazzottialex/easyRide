@@ -3,6 +3,8 @@ import axios from 'axios'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { getSocket } from '../../services/socket'
 
+const emit = defineEmits(['route-ready'])
+
 const props = defineProps({
   driverLocation: {
     type: Array,
@@ -21,32 +23,45 @@ const addRequest = async request => {
   }
 
   let requestWithRoute = request
-  if (props.driverLocation) {
-    const response = await axios.get(
+  if (!requests.value.some(currentRequest => currentRequest._id === request._id)) {
+    requests.value.push(requestWithRoute)
+  }
+
+  try {
+    if (props.driverLocation) {
+      const response = await axios.get(
+        'http://localhost:3000/api/routing/route',
+        {
+          params: {
+            points: [
+              props.driverLocation.join(','),
+              request.pickup,
+              request.dropoff
+            ].join(';')
+          }
+        }
+      )
+      requestWithRoute = Object.assign({}, request, { driverRoute: response.data.route })
+    }
+
+    const rideResponse = await axios.get(
       'http://localhost:3000/api/routing/route',
       {
         params: {
-          pickup: props.driverLocation.join(','),
-          destination: request.pickup
+          pickup: request.pickup,
+          destination: request.dropoff
         }
       }
     )
-    requestWithRoute = Object.assign({}, request, { driverRoute: response.data.route })
-  }
+    requestWithRoute = Object.assign({}, requestWithRoute, { rideRoute: rideResponse.data.route })
+    emit('route-ready', requestWithRoute)
 
-  const rideResponse = await axios.get(
-    'http://localhost:3000/api/routing/route',
-    {
-      params: {
-        pickup: request.pickup,
-        destination: request.dropoff
-      }
+    const requestIndex = requests.value.findIndex(currentRequest => currentRequest._id === request._id)
+    if (requestIndex !== -1) {
+      requests.value[requestIndex] = requestWithRoute
     }
-  )
-  requestWithRoute = Object.assign({}, requestWithRoute, { rideRoute: rideResponse.data.route })
-
-  if (!requests.value.some(currentRequest => currentRequest._id === request._id)) {
-    requests.value.push(requestWithRoute)
+  } catch (error) {
+    errorMessage.value = error.response?.data?.error
   }
 }
 
@@ -107,7 +122,7 @@ onBeforeUnmount(() => {
             <input :value="request.dropoff" class="form-control" type="text" readonly />
           </div>
           <p v-if="request.driverRoute" class="text-secondary">
-            Distanza dal passeggero: {{ (request.driverRoute.distance / 1000).toFixed(1) }} km
+            Percorso driver: {{ (request.driverRoute.distance / 1000).toFixed(1) }} km
           </p>
           <p v-if="request.rideRoute" class="text-secondary">
             Distanza corsa: {{ (request.rideRoute.distance / 1000).toFixed(1) }} km

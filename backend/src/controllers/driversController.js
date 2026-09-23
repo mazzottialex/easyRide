@@ -42,11 +42,10 @@ exports.getDriverStatus = async (req, res) => {
 
 exports.setDriverStatus = async (req, res) => {
     try {
-        const { status } = req.body;
-
+		const { status } = req.body;
         const driver = await driverModel.findOneAndUpdate(
             { userId: req.user.user_Id },
-            { status: status },
+			{ status: status },
             { new: true }
         ).populate('userId', 'name email');
 		if (!driver) {
@@ -57,7 +56,7 @@ exports.setDriverStatus = async (req, res) => {
         io.emit('driver:status-changed', {
             driverId: driver._id,
             userId: driver.userId._id,
-            status: driver.status
+			status: driver.status
         });
 
         return res.status(200).json(driver);
