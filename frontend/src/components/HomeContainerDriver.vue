@@ -98,6 +98,10 @@ onMounted(async () => {
       type="driver"
       @location-selected="handleLocationSelected"
     />
-    <RequestForm v-if="currentView === 'online'" class="mt-4" />
+    <RequestForm
+      v-if="currentView === 'online'"
+      :driver-location="driverLocation"
+      class="mt-4"
+    />
   </main>
 </template>

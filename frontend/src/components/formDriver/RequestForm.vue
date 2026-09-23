@@ -3,17 +3,50 @@ import axios from 'axios'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { getSocket } from '../../services/socket'
 
+const props = defineProps({
+  driverLocation: {
+    type: Array,
+    default: null
+  }
+})
+
 const requests = ref([])
 const activeRides = ref([])
 const socket = getSocket()
 
-const addRequest = (request) => {
+const addRequest = async request => {
   if (request.status !== 'pending') {
     updateActiveRide(request)
     return
   }
+
+  let requestWithRoute = request
+  if (props.driverLocation) {
+    const response = await axios.get(
+      'http://localhost:3000/api/routing/route',
+      {
+        params: {
+          pickup: props.driverLocation.join(','),
+          destination: request.pickup
+        }
+      }
+    )
+    requestWithRoute = Object.assign({}, request, { driverRoute: response.data.route })
+  }
+
+  const rideResponse = await axios.get(
+    'http://localhost:3000/api/routing/route',
+    {
+      params: {
+        pickup: request.pickup,
+        destination: request.dropoff
+      }
+    }
+  )
+  requestWithRoute = Object.assign({}, requestWithRoute, { rideRoute: rideResponse.data.route })
+
   if (!requests.value.some(currentRequest => currentRequest._id === request._id)) {
-    requests.value.push(request)
+    requests.value.push(requestWithRoute)
   }
 }
 
@@ -73,10 +106,15 @@ onBeforeUnmount(() => {
             <label class="form-label">Destinazione</label>
             <input :value="request.dropoff" class="form-control" type="text" readonly />
           </div>
-          <div class="mb-4">
-            <label class="form-label">Passeggeri</label>
-            <input value="1" class="form-control" type="number" readonly />
-          </div>
+          <p v-if="request.driverRoute" class="text-secondary">
+            Distanza dal passeggero: {{ (request.driverRoute.distance / 1000).toFixed(1) }} km
+          </p>
+          <p v-if="request.rideRoute" class="text-secondary">
+            Distanza corsa: {{ (request.rideRoute.distance / 1000).toFixed(1) }} km
+          </p>
+          <p class="text-secondary">
+            Prezzo corsa: {{ Number(request.price).toFixed(2) }} €
+          </p>
           <div class="d-flex gap-2">
             <button type="button" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold" @click="acceptRequest(request)">
               Accetta
