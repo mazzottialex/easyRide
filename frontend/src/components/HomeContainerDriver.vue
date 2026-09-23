@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import DriverStatusForm from './formDriver/StatusSelectLocationForm.vue'
 import RequestForm from './formDriver/RequestForm.vue'
 import SelectionLocationForm from './SelectionLocationForm.vue'
-import MapForm from './formUser/MapForm.vue/index.js'
+import MapForm from './MapForm.vue/index.js'
 
 const status = ref('unavailable')
 const currentView = ref('offline')
