@@ -1,5 +1,4 @@
-async function getRoute(pickup, destination) {
-    const coordinates = `${pickup};${destination}` //es."123.123,123.123;123.123,123.123"
+async function getRoute(coordinates) {
     const url =`http://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson`
     const response = await fetch(url)
 
