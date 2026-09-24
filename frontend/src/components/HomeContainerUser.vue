@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue"
 import { useRouter } from 'vue-router'
 import BookingForm from "./formUser/BookingForm.vue"
 import SelectionLocationForm from "./SelectionLocationForm.vue"
-import MapForm from "./MapForm.vue/index.js"
+import MapForm from "./MapForm.vue"
 import SelectionDriverForm from "./formUser/SelectionDriverForm.vue"
 import { getSocket } from '../services/socket'
 

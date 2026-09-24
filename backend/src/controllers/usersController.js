@@ -1,6 +1,6 @@
 const { userModel } = require('../models/usersModel');
 const { driverModel } = require('../models/driversModel');
-const { vehicleModel } = require('../models/vehiclesModel');
+const { vehiclesModel } = require('../models/vehiclesModel');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
@@ -53,7 +53,7 @@ exports.createDriver = async (req, res) => {
             status: 'unavailable'
         });
         await driver.save();
-        const vehicle = new vehicleModel({
+        const vehicle = new vehiclesModel({
             driverId: driver._id,
             brand,
             model,
