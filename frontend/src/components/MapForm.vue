@@ -107,35 +107,26 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="col-md-8 col-lg-6 mx-auto">
-        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
-          <div class="card-body p-3">
-            <h1 class="h5 text-center text-dark fw-bold mb-3">
-              Mappa del percorso
-            </h1>
-            <h2 class="h5 text-center text-dark fw-bold mb-3">
-              Tempo stimato: {{route()?.duration/60 | Math.round}} minuti
-              Distanza stimata: {{(route()?.distance/1000).toFixed(1)}} km  
-            </h2>
-            <div ref="mapElement"
-                class="map-container"
-                style="height: 400px;">
-              <svg class="route-svg">
-                <path :d="routePath" />
-                <circle
-                  v-for="point in routePoints"
-                  :key="point.name"
-                  :cx="point.x"
-                  :cy="point.y"
-                  class="route-point"
-                  r="7"
-                  :fill="point.color"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
+  <div class="w-100 ">
+    <div
+      ref="mapElement"
+      class="w-100"
+      style="height: 400px;"
+    >
+      <svg class="route-svg w-100 h-100">
+        <path :d="routePath" />
+        <circle
+          v-for="point in routePoints"
+          :key="point.name"
+          :cx="point.x"
+          :cy="point.y"
+          class="route-point"
+          r="7"
+          :fill="point.color"
+        />
+      </svg>
     </div>
+  </div>
 </template>
 
 <style scoped>

@@ -2,6 +2,7 @@
 import axios from 'axios'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { getSocket } from '../../services/socket'
+import MapForm from '../MapForm.vue'
 
 const emit = defineEmits(['route-ready'])
 
@@ -15,6 +16,7 @@ const props = defineProps({
 const requests = ref([])
 const activeRides = ref([])
 const socket = getSocket()
+const errorMessage = ref('')
 
 const addRequest = async request => {
   if (request.status !== 'pending') {
@@ -130,7 +132,13 @@ onBeforeUnmount(() => {
           <p class="text-secondary">
             Prezzo corsa: {{ Number(request.price).toFixed(2) }} €
           </p>
-          <div class="d-flex gap-2">
+          <MapForm
+            :route-data="{ route: request.rideRoute }"
+            :driver-location="props.driverLocation"
+            :pickup-location="request.pickup"
+            :dropoff-location="request.dropoff" 
+          /> <!-- fixare driver location --> 
+          <div class="d-flex gap-2 mt-4">
             <button type="button" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold" @click="acceptRequest(request)">
               Accetta
             </button>

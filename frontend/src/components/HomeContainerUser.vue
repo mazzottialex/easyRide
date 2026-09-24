@@ -100,12 +100,14 @@ onBeforeUnmount(() => socket.off('ride:status-changed', handleRideStatusChanged)
     :type="currentView === 'pickup'?'pickup':'dropoff'"
     @location-selected="handleLocationSelected"
   />
-  <template v-else-if="currentView === 'route'">
-    <MapForm
-      :pickup-location="bookingData.pickup"
-      :dropoff-location="bookingData.dropoff"
-      :route-data="routeData"
-    />
+  <div v-else-if="currentView === 'route'">
+    <div class="w-50 mx-auto">
+      <MapForm
+        :pickup-location="bookingData.pickup"
+        :dropoff-location="bookingData.dropoff"
+        :route-data="routeData"
+      />
+    </div>
     <SelectionDriverForm
       class="mt-4"
       :pickup="bookingData.pickup"
@@ -114,7 +116,7 @@ onBeforeUnmount(() => socket.off('ride:status-changed', handleRideStatusChanged)
       @driver-selected="handleDriverSelected"
       @ride-created="handleRideCreated"
     />
-  </template>
+  </div>
   <div v-else-if="currentView === 'ride'" class="text-center mt-5">
     <h2 class="h4">Richiesta corsa inviata</h2>
     <p class="text-secondary">Stato: {{ activeRide?.status }}</p>

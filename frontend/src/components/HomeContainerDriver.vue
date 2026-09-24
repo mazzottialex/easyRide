@@ -108,13 +108,6 @@ onMounted(async () => {
       type="driver"
       @location-selected="handleLocationSelected"
     />
-    <MapForm
-      v-if="isOnline && currentView === 'map'"
-      :route-data="driverRouteData"
-      :driver-location="driverLocation"
-      :pickup-location="driverRequest?.pickup"
-      :dropoff-location="driverRequest?.dropoff"
-    />
     <RequestForm
       v-if="isOnline || currentView === 'map'"
       :driver-location="driverLocation"
