@@ -2,18 +2,18 @@
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { Map } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const mapElement = ref(null)
 const routePath = ref(null)
 const routePoints = ref([])
+const route = ref(null)
+const router = useRouter()
 let routeCoordinates = []
 let map = null
 
 const props = defineProps({
-  routeData: {
-    type: Object,
-    default: null
-  },
   pickupLocation: {
     type: [Array, String],
     default: null
@@ -27,7 +27,6 @@ const props = defineProps({
     default: null
   }
 })
-const route = () => props.routeData?.route
 
 const updateRouteOverlay = () => {
   routePath.value = routeCoordinates.map((coordinate, index) => {
@@ -54,18 +53,44 @@ const toCoordinates = location => {
     return location.map(Number)
   }
   if (typeof location === 'string') {
-    return location.split(',').map(Number)
+    return location.split(',').map(value => Number(value.trim()))
   }
   return null
 }
 
 const drawRoute = () => {
-  const coordinates = route()?.geometry?.coordinates?.map(([longitude, latitude]) => [
+  const coordinates = route.value?.geometry?.coordinates?.map(([longitude, latitude]) => [
     Number(longitude),
     Number(latitude)
   ])
   routeCoordinates = coordinates
   updateRouteOverlay()
+}
+
+const computeRoute = async () => {
+  try {
+
+    const pickup = toCoordinates(props.pickupLocation)
+    const destination = toCoordinates(props.dropoffLocation)
+    const response = await axios.get('http://localhost:3000/api/routing/route', {
+      params: {
+        pickup: pickup.join(','),
+        destination: destination.join(',')
+      }
+    })
+    route.value = response.data.route
+    drawRoute()
+  } catch (error) {
+    handleRequestError(error)
+  }
+}
+
+const handleRequestError = error => {
+  if (error.response?.status === 401) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    router.push('/login')
+  }
 }
 
 onMounted(() => {
@@ -92,14 +117,14 @@ onMounted(() => {
     center: [12.244, 44.138],
     zoom: 12
   })
-  map.once('load', drawRoute)
+
+  map.once('load', computeRoute)
   map.on('move', updateRouteOverlay)
 })
 
-watch(() => props.routeData, drawRoute) //percorso
-watch(() => [props.driverLocation, props.pickupLocation, props.dropoffLocation], //puntini
-  updateRouteOverlay)
-      
+// watch(() => props.routeData, drawRoute) //percorso
+// watch(() => [props.driverLocation, props.pickupLocation, props.dropoffLocation], //puntini
+//   updateRouteOverlay)
 onBeforeUnmount(() => {
   map?.off('move', updateRouteOverlay)
   map?.remove()
