@@ -1,7 +1,5 @@
 <script setup>
-import axios from "axios"
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
-import { useRouter } from 'vue-router'
 import BookingForm from "./formUser/BookingForm.vue"
 import SelectionLocationForm from "./SelectionLocationForm.vue"
 import MapForm from "./MapForm.vue"
@@ -14,12 +12,9 @@ const bookingData = ref({
   pickup: "",
   dropoff: ""
 })
-const routeData = ref(null)
-const routeError = ref(null)
 const selectedDriver = ref(null)
 const activeRide = ref(null)
 const socket = getSocket()
-const router = useRouter()
 
 const ridePrice = computed(() => {
   return 10
@@ -55,31 +50,9 @@ const handleRideStatusChanged = (ride) => {
   }
 }
 
-const handleRequestError = error => {
-  if (error.response?.status === 401) {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    router.push('/login')
-  }
-}
 
 const handleBooking = async () => {
-  if (!bookingData.value.pickup || !bookingData.value.dropoff) {
-    return
-  }
-  routeError.value = ''
-  try {
-    const response = await axios.get('http://localhost:3000/api/routing/route', {
-      params: {
-        pickup: bookingData.value.pickup.join(','), //es."123.123,123.123"
-        destination: bookingData.value.dropoff.join(',')
-      }
-    })
-    routeData.value = response.data
-    currentView.value = 'route'
-  } catch (error) {
-    handleRequestError(error)
-  }
+  currentView.value = 'route'
 }
 const handleDriverSelected = async (driver) => {
   selectedDriver.value = driver.value
@@ -107,7 +80,6 @@ onBeforeUnmount(() => socket.off('ride:status-changed', handleRideStatusChanged)
       <MapForm
         :pickup-location="bookingData.pickup"
         :dropoff-location="bookingData.dropoff"
-        :route-data="routeData"
       />
     </div>
     <SelectionDriverForm
@@ -122,5 +94,4 @@ onBeforeUnmount(() => socket.off('ride:status-changed', handleRideStatusChanged)
   <div v-else-if="currentView === 'ride'" class="text-center mt-5">
     <p class="text-secondary">Stato: {{ activeRide?.status }}</p>
   </div>
-  <p v-if="routeError" class="text-danger text-center mt-3">{{routeError}}</p>
 </template>

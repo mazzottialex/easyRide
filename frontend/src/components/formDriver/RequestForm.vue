@@ -1,10 +1,7 @@
 <script setup>
-import axios from 'axios'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { getSocket } from '../../services/socket'
 import MapForm from '../MapForm.vue'
-
-const emit = defineEmits(['route-ready'])
 
 const props = defineProps({
   driverLocation: {
@@ -16,54 +13,15 @@ const props = defineProps({
 const requests = ref([])
 const activeRides = ref([])
 const socket = getSocket()
-const errorMessage = ref('')
 
-const addRequest = async request => {
+const addRequest = request => {
   if (request.status !== 'pending') {
     updateActiveRide(request)
     return
   }
 
-  let requestWithRoute = request
   if (!requests.value.some(currentRequest => currentRequest._id === request._id)) {
-    requests.value.push(requestWithRoute)
-  }
-
-  try {
-    if (props.driverLocation) {
-      const response = await axios.get(
-        'http://localhost:3000/api/routing/route',
-        {
-          params: {
-            points: [
-              props.driverLocation.join(','),
-              request.pickup,
-              request.dropoff
-            ].join(';')
-          }
-        }
-      )
-      requestWithRoute = Object.assign({}, request, { driverRoute: response.data.route })
-    }
-
-    const rideResponse = await axios.get(
-      'http://localhost:3000/api/routing/route',
-      {
-        params: {
-          pickup: request.pickup,
-          destination: request.dropoff
-        }
-      }
-    )
-    requestWithRoute = Object.assign({}, requestWithRoute, { rideRoute: rideResponse.data.route })
-    emit('route-ready', requestWithRoute)
-
-    const requestIndex = requests.value.findIndex(currentRequest => currentRequest._id === request._id)
-    if (requestIndex !== -1) {
-      requests.value[requestIndex] = requestWithRoute
-    }
-  } catch (error) {
-    errorMessage.value = error.response?.data?.error
+    requests.value.push(request)
   }
 }
 
@@ -123,21 +81,14 @@ onBeforeUnmount(() => {
             <label class="form-label">Destinazione</label>
             <input :value="request.dropoff" class="form-control" type="text" readonly />
           </div>
-          <p v-if="request.driverRoute" class="text-secondary">
-            Percorso driver: {{ (request.driverRoute.distance / 1000).toFixed(1) }} km
-          </p>
-          <p v-if="request.rideRoute" class="text-secondary">
-            Distanza corsa: {{ (request.rideRoute.distance / 1000).toFixed(1) }} km
-          </p>
           <p class="text-secondary">
             Prezzo corsa: {{ Number(request.price).toFixed(2) }} €
           </p>
           <MapForm
-            :route-data="{ route: request.rideRoute }"
             :driver-location="props.driverLocation"
             :pickup-location="request.pickup"
             :dropoff-location="request.dropoff" 
-          /> <!-- fixare driver location --> 
+          />
           <div class="d-flex gap-2 mt-4">
             <button type="button" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold" @click="acceptRequest(request)">
               Accetta
