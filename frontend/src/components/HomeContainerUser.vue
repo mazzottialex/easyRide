@@ -42,11 +42,13 @@ const handleLocationSelected = (coordinates) => {
   currentView.value = 'booking'
 }
 
-const handleRideCreated = (ride) => {
-  activeRide.value = ride
+//ricezione ride
+const handleRideAccepted = (ride) => {
+  activeRide.value = ride.value
   currentView.value = 'ride'
 }
 
+//aggiorna ride al cambiamento di stato, se ride presente
 const handleRideStatusChanged = (ride) => {
   if (activeRide.value?._id === ride._id) {
     activeRide.value = ride
@@ -80,7 +82,7 @@ const handleBooking = async () => {
   }
 }
 const handleDriverSelected = async (driver) => {
-  selectedDriver.value = driver
+  selectedDriver.value = driver.value
 }
 
 onMounted(() => socket.on('ride:status-changed', handleRideStatusChanged)) //listener socket
@@ -114,11 +116,10 @@ onBeforeUnmount(() => socket.off('ride:status-changed', handleRideStatusChanged)
       :dropoff="bookingData.dropoff"
       :price="ridePrice"
       @driver-selected="handleDriverSelected"
-      @ride-created="handleRideCreated"
+      @ride-accepted="handleRideAccepted"
     />
   </div>
   <div v-else-if="currentView === 'ride'" class="text-center mt-5">
-    <h2 class="h4">Richiesta corsa inviata</h2>
     <p class="text-secondary">Stato: {{ activeRide?.status }}</p>
   </div>
   <p v-if="routeError" class="text-danger text-center mt-3">{{routeError}}</p>

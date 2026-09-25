@@ -3,7 +3,7 @@ import axios from 'axios'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { getSocket } from '../../services/socket'
 
-const emit = defineEmits(['driver-selected'])
+const emit = defineEmits(['driver-accepted'])
 const props = defineProps({
     pickup: { type: [String, Array], required: true },
     dropoff: { type: [String, Array], required: true },
@@ -14,6 +14,7 @@ const selectedDriver = ref(null)
 const errorMessage = ref(null)
 const requestSent = ref(false)
 const socket = getSocket()
+const ride = ref(null)
 
 const loadDrivers = async () => {
     try {
@@ -32,7 +33,7 @@ const loadDrivers = async () => {
 }
 const selectDriver = (driver) => {
     selectedDriver.value = driver
-    emit('driver-selected', driver)
+    //emit('driver-selected', driver)
 }
 
 const requestDriver = async () => {
@@ -55,12 +56,24 @@ const requestDriver = async () => {
         }
     )
     requestSent.value = true
-    emit('ride-created', response.data)
+    ride.value = response.data
+    //emit('ride-created', response.data)
+}
+
+const handleRideStatusChanged = (rideRec) => {
+  if (ride.value?._id === rideRec._id) {
+    ride.value = rideRec
+  }
+  if (rideRec?.status == "accepted"){
+    emit('ride-accepted', ride)
+    emit('driver-selected', selectDriver)
+  }
 }
 
 onMounted(() => {
     loadDrivers()
     socket.on('driver:status-changed', loadDrivers)
+    socket.on('ride:status-changed', handleRideStatusChanged)
 })
 onBeforeUnmount(() => {
     socket.off('driver:status-changed', loadDrivers)
@@ -73,6 +86,9 @@ onBeforeUnmount(() => {
             <div class="card-body p-4">
                 <h2 class="h5 text-center text-dark fw-bold mb-3">
                     Scegli un autista
+                </h2>
+                <h2 class="h5 text-center text-dark fw-bold mb-3">
+                    Stato: {{ ride?.status }}
                 </h2>
                 <div v-if="errorMessage" class="alert alert-danger" role="alert">
                     {{ errorMessage }}
