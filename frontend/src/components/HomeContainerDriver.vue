@@ -10,6 +10,7 @@ const status = ref('unavailable')
 const currentView = ref('offline')
 const currentUser = ref(null)
 const driverLocation = ref(null)
+const currentRide = ref(null)
 const isOnline = computed(() => status.value === 'available')
 
 const router = useRouter()
@@ -72,6 +73,11 @@ const handleLocationSelected = coordinates => {
     currentView.value = 'offline'
 }
 
+const handleRideData = ride => {
+  currentRide.value = ride
+  currentView.value = 'rideInProgress'
+}
+
 onMounted(async () => {
   await loadStatus()
   const user = localStorage.getItem('user');
@@ -88,7 +94,7 @@ onMounted(async () => {
 <template>
   <main class="container py-5">
     <DriverStatusForm
-      v-if="currentView !== 'selectionLocation'"
+      v-if="currentView !== 'selectionLocation' && currentView !== 'rideInProgress'"
       :is-online="isOnline"
       :location="driverLocation"
       @toggle-online="toggleStatus"
@@ -100,9 +106,10 @@ onMounted(async () => {
       @location-selected="handleLocationSelected"
     />
     <RequestForm
-      v-if="isOnline"
+      v-if="isOnline && currentView !== 'rideInProgress'"
       :driver-location="driverLocation"
       class="mt-4"
+      @ride-data="handleRideData"
     />
   </main>
 </template>
