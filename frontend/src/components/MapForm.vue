@@ -56,28 +56,44 @@ const toCoordinates = location => {
   return null
 }
 
-const drawRoute = routeData => {
-  const coordinates = routeData?.geometry?.coordinates?.map(([longitude, latitude]) => [
-    Number(longitude),
-    Number(latitude)
-  ])
-  routeCoordinates = coordinates
+const drawRoute = coordinates => {
+  routeCoordinates = coordinates || []
   updateRouteOverlay()
 }
 
-const computeRoute = async () => {
-  const pickup = toCoordinates(props.pickupLocation)
-  const destination = toCoordinates(props.dropoffLocation)
+const getRoute = async (posA, posB) => {
+  const corA = toCoordinates(posA)
+  const corB = toCoordinates(posB)
   try {
     const response = await axios.get('http://localhost:3000/api/routing/route',{
       params: {
-        pickup: pickup.join(','),
-        destination: destination.join(',')
+        pickup: corA.join(','),
+        destination: corB.join(',')
       }
     })
-    drawRoute(response.data.route)
+    return response.data.route.geometry.coordinates
   } catch (error) {
     alert(error.message)
+  }
+}
+
+const computeRoute = async () => {
+  let firstRoute = []
+  if (props.driverLocation !== null) {
+    firstRoute = await getRoute(
+      props.driverLocation,
+      props.pickupLocation
+    )
+  }
+  const secondRoute = await getRoute(
+    props.pickupLocation,
+    props.dropoffLocation
+  )
+  if(props.driverLocation === null){
+    return secondRoute
+  }
+  else{
+    return firstRoute.slice(1).concat(secondRoute)
   }
 }
 
@@ -90,7 +106,7 @@ watch(
   async () => {
     updateRouteOverlay()
     if (mapLoaded) {
-      await computeRoute()
+      await drawRoute(await computeRoute())
     }
   }
 )
@@ -123,7 +139,7 @@ onMounted(() => {
   map.once('load', async () => {
     mapLoaded = true
     updateRouteOverlay()
-    await computeRoute()
+    await drawRoute(await computeRoute())
   })
 
   map.on('move', updateRouteOverlay)
