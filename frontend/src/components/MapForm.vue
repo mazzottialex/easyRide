@@ -5,9 +5,9 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import axios from 'axios'
 
 const mapElement = ref(null)
-const routePath = ref('')
+const routePaths = ref([])
 const routePoints = ref([])
-let routeCoordinates = []
+let routeCoordinates = [[], []]
 let map = null
 let mapLoaded = false
 
@@ -27,10 +27,10 @@ const props = defineProps({
 })
 
 const updateRouteOverlay = () => {
-  routePath.value = routeCoordinates.map((coordinate, index) => {
-      const point = map.project(coordinate)
-      return `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`
-    }).join(' ')
+  routePaths.value = routeCoordinates.map(coordinates => coordinates.map((coordinate, index) => {
+    const point = map.project(coordinate)
+    return `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`
+  }).join(' '))
   const points = [
     { name: 'driver', coordinate: props.driverLocation, color: 'blue' },
     { name: 'pickup', coordinate: props.pickupLocation, color: 'green' },
@@ -56,8 +56,8 @@ const toCoordinates = location => {
   return null
 }
 
-const drawRoute = coordinates => {
-  routeCoordinates = coordinates || []
+const drawRoute = routes => {
+  routeCoordinates = routes || [[], []]
   updateRouteOverlay()
 }
 
@@ -89,12 +89,8 @@ const computeRoute = async () => {
     props.pickupLocation,
     props.dropoffLocation
   )
-  if(props.driverLocation === null){
-    return secondRoute
-  }
-  else{
-    return firstRoute.slice(1).concat(secondRoute)
-  }
+
+  return [firstRoute, secondRoute]
 }
 
 watch(
@@ -159,7 +155,12 @@ onBeforeUnmount(() => {
       style="height: 400px;"
     >
       <svg class="route-svg w-100 h-100">
-        <path :d="routePath" />
+        <path
+          v-for="(path, index) in routePaths"
+          :key="index"
+          :d="path"
+          :class="index === 0 ? 'first-route' : 'second-route'"
+        />
         <circle
           v-for="point in routePoints"
           :key="point.name"
@@ -185,10 +186,16 @@ onBeforeUnmount(() => {
 }
 .route-svg path {
   fill: none;
-  stroke: red;
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
+  stroke-opacity: 0.7;
+}
+.route-svg .first-route {
+  stroke: blue;
+}
+.route-svg .second-route {
+  stroke: red;
 }
 .route-point {
   stroke: white;
