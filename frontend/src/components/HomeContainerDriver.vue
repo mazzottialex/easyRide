@@ -4,7 +4,9 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import DriverStatusForm from './formDriver/StatusSelectLocationForm.vue'
 import RequestForm from './formDriver/RequestForm.vue'
+import ControlRideForm from './formDriver/ControlRideForm.vue'
 import SelectionLocationForm from './SelectionLocationForm.vue'
+import MapForm from './MapForm.vue'
 
 const status = ref('unavailable')
 const currentView = ref('offline')
@@ -78,6 +80,14 @@ const handleRideData = ride => {
   currentView.value = 'rideInProgress'
 }
 
+const handleRideUpdated = ride => {
+  currentRide.value = ride
+  if (ride.status === 'completed' || ride.status === 'cancelled') {
+    currentRide.value = null
+    currentView.value = isOnline.value ? 'online' : 'offline'
+  }
+}
+
 onMounted(async () => {
   await loadStatus()
   const user = localStorage.getItem('user');
@@ -111,5 +121,19 @@ onMounted(async () => {
       class="mt-4"
       @ride-data="handleRideData"
     />
+    <ControlRideForm
+      v-if="currentRide"
+      :ride="currentRide"
+      @ride-updated="handleRideUpdated"
+    />
+    <div class="w-50 mx-auto">
+
+      <MapForm
+        v-if="currentRide"
+        :pickup-location="currentRide?.pickup"
+        :dropoff-location="currentRide?.dropoff"
+        :driver-location="driverLocation"
+      />
+    </div>
   </main>
 </template>
