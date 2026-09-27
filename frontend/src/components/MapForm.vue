@@ -11,6 +11,8 @@ let routeCoordinates = [[], []]
 let map = null
 let mapLoaded = false
 
+const emit = defineEmits(['route-calculated'])
+
 const props = defineProps({
   pickupLocation: {
     type: [Array, String],
@@ -102,7 +104,9 @@ watch(
   async () => {
     updateRouteOverlay()
     if (mapLoaded) {
-      await drawRoute(await computeRoute())
+      const routes = await computeRoute()
+      drawRoute(routes)
+      emit('route-calculated', routes)
     }
   }
 )
@@ -135,7 +139,9 @@ onMounted(() => {
   map.once('load', async () => {
     mapLoaded = true
     updateRouteOverlay()
-    await drawRoute(await computeRoute())
+    const routes = await computeRoute()
+    drawRoute(routes)
+    emit('route-calculated', routes)
   })
 
   map.on('move', updateRouteOverlay)

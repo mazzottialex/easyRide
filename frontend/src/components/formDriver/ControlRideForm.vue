@@ -5,6 +5,14 @@ const props = defineProps({
   ride: {
     type: Object,
     required: true
+  },
+  driverLocation: {
+    type: Array,
+    default: null
+  },
+  routes: {
+    type: Array,
+    default: () => [[], []]
   }
 })
 
@@ -13,7 +21,11 @@ const emit = defineEmits(['ride-updated'])
 const updateStatus = async status => {
   const response = await axios.patch(
     `http://localhost:3000/api/rides/${props.ride._id}/status`,
-    { status },
+    {
+      status,
+      driverLocation: props.driverLocation?.join(','),
+      routes: props.routes
+    },
     {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`

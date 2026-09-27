@@ -13,6 +13,7 @@ const currentView = ref('offline')
 const currentUser = ref(null)
 const driverLocation = ref(null)
 const currentRide = ref(null)
+const rideRoutes = ref([[], []])
 const isOnline = computed(() => status.value === 'available')
 
 const router = useRouter()
@@ -88,6 +89,10 @@ const handleRideUpdated = ride => {
   }
 }
 
+const handleRouteCalculated = routes => {
+  rideRoutes.value = routes
+}
+
 onMounted(async () => {
   await loadStatus()
   const user = localStorage.getItem('user');
@@ -124,6 +129,8 @@ onMounted(async () => {
     <ControlRideForm
       v-if="currentRide"
       :ride="currentRide"
+      :driver-location="driverLocation"
+      :routes="rideRoutes"
       @ride-updated="handleRideUpdated"
     />
     <div class="w-50 mx-auto">
@@ -133,6 +140,7 @@ onMounted(async () => {
         :pickup-location="currentRide?.pickup"
         :dropoff-location="currentRide?.dropoff"
         :driver-location="driverLocation"
+        @route-calculated="handleRouteCalculated"
       />
     </div>
   </main>
