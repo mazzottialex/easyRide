@@ -1,12 +1,13 @@
 <script setup>
 import axios from 'axios'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import DriverStatusForm from './formDriver/StatusSelectLocationForm.vue'
 import RequestForm from './formDriver/RequestForm.vue'
 import ControlRideForm from './formDriver/ControlRideForm.vue'
 import SelectionLocationForm from './SelectionLocationForm.vue'
 import MapForm from './MapForm.vue'
+import { getSocket } from '../services/socket'
 
 const status = ref('unavailable')
 const currentView = ref('offline')
@@ -14,6 +15,7 @@ const currentUser = ref(null)
 const driverLocation = ref(null)
 const currentRide = ref(null)
 const rideRoutes = ref([[], []])
+const socket = getSocket()
 const isOnline = computed(() => status.value === 'available')
 
 const router = useRouter()
@@ -93,7 +95,13 @@ const handleRouteCalculated = routes => {
   rideRoutes.value = routes
 }
 
+const handleRideLocationChanged = location => {
+  driverLocation.value = location.split(',').map(Number)
+  socket.emit('driver:location', {rideId: currentRide.value._id, location})
+}
+
 onMounted(async () => {
+  socket.on('ride:location-changed', handleRideLocationChanged)
   await loadStatus()
   const user = localStorage.getItem('user');
   if (user) {
@@ -103,6 +111,10 @@ onMounted(async () => {
       currentUser.value = { name: user };
     }
   }
+})
+
+onBeforeUnmount(() => {
+  socket.off('ride:location-changed', handleRideLocationChanged)
 })
 </script>
 

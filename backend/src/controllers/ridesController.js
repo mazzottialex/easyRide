@@ -121,9 +121,10 @@ exports.updateRideLocation = async (req, res) => {
 		const ride = await ridesModel.findById(id);
 
 		//currentLocations.set(String(ride._id), location);
-		req.app.get('io')?.to(`user:${ride.passengerId}`).emit('ride:location-changed', {
-			location
-		});
+		//const locationUpdate = { rideId: ride._id, location };
+		const io = req.app.get('io');
+		//io?.to(`user:${ride.passengerId}`).emit('ride:location-changed', locationUpdate);
+		io?.to(`driver:${ride.driverId}`).emit('ride:location-changed', location);
 		return res.status(200).json({ rideId: ride._id, location });
 	} catch (error) {
 		return res.status(500).json({ error: error.message });

@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const { driverModel } = require('../models/driversModel');
+const { ridesModel } = require('../models/ridesModel');
 
 const JWT_KEY = 'abcabcabc';
 
@@ -29,6 +30,15 @@ const initializeSocket = (server) => {
                 }
             })
             .catch(error => error.message);
+
+        socket.on('driver:location', async ({ rideId, location }) => {
+            const ride = await ridesModel.findById(rideId);
+            const driver = await driverModel.findOne({ userId: socket.user.user_Id });
+            if (!ride || !driver) {
+                return;
+            }
+            io.to(`user:${ride.passengerId}`).emit('ride:location-changed', { location });
+        });
 
         socket.on('disconnect', () => {
             console.log('Socket disconnesso:', socket.id);
