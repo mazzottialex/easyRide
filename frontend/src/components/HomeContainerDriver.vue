@@ -85,10 +85,31 @@ const handleRideData = ride => {
 
 const handleRideUpdated = ride => {
   currentRide.value = ride
-  if (ride.status === 'completed' || ride.status === 'cancelled') {
+  if (ride.status === 'arriving') {
+    sendRoute(rideRoutes.value[0], 'arrived')
+  }
+  else if (ride.status === 'in_progress') {
+    sendRoute(rideRoutes.value[1], 'completed')
+  }
+  else if (ride.status === 'completed' || ride.status === 'cancelled') {
     currentRide.value = null
     currentView.value = isOnline.value ? 'online' : 'offline'
   }
+}
+
+const sendRoute = async (route, statusAfterSimulation) => {
+  if (!currentRide.value || !route?.length) {
+    return
+  }
+  await axios.patch(
+    `http://localhost:3000/api/rides/${currentRide.value._id}/route`,
+    { route, statusAfterSimulation },
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    }
+  )
 }
 
 const handleRouteCalculated = routes => {
@@ -102,6 +123,7 @@ const handleRideLocationChanged = location => {
 
 onMounted(async () => {
   socket.on('ride:location-changed', handleRideLocationChanged)
+  socket.on('ride:status-changed', handleRideUpdated)
   await loadStatus()
   const user = localStorage.getItem('user');
   if (user) {
@@ -115,6 +137,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   socket.off('ride:location-changed', handleRideLocationChanged)
+  socket.off('ride:status-changed', handleRideUpdated)
 })
 </script>
 
@@ -141,8 +164,6 @@ onBeforeUnmount(() => {
     <ControlRideForm
       v-if="currentRide"
       :ride="currentRide"
-      :driver-location="driverLocation"
-      :routes="rideRoutes"
       @ride-updated="handleRideUpdated"
     />
     <div class="w-50 mx-auto">

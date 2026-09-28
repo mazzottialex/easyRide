@@ -6,18 +6,15 @@ const jwt = require('jsonwebtoken');
 
 const JWT_KEY = 'abcabcabc';
 const activeSimulations = new Map();
-//const currentLocations = new Map();
 
-const stopRideSimulation = rideId => {
-	const simulation = activeSimulations.get(String(rideId));
-	if (simulation) {
-		simulation.kill();
-		activeSimulations.delete(String(rideId));
-		//currentLocations.delete(String(rideId));
-	}
+
+const emitRideStatus = async (ride, io) => {
+	const updatedRide = await populateRide(ridesModel.findById(ride._id));
+	io?.to(`user:${ride.passengerId}`).emit('ride:status-changed', updatedRide);
+	io?.to(`driver:${ride.driverId}`).emit('ride:status-changed', updatedRide);
 };
 
-const startRideSimulation = (ride, userId, routes) => {
+const startRideSimulation = (ride, userId, route, statusAfterSimulation, io) => {
 	stopRideSimulation(ride._id);
 
 	const token = jwt.sign({ user_Id: userId }, JWT_KEY, { expiresIn: '1h' });
@@ -29,17 +26,31 @@ const startRideSimulation = (ride, userId, routes) => {
 			String(ride._id),
 			token,
 			'--step-seconds',
-			'0.2'
+			'0.01'
 		]
 	);
 
 	simulation.stdout.on('data', output => console.log(`[simulator] ${output}`));
 	simulation.stderr.on('data', output => console.error(`[simulator] ${output}`));
-	simulation.on('close', () => activeSimulations.delete(String(ride._id)));
+	simulation.on('close', async () => {
+		activeSimulations.delete(String(ride._id));
+		const currentRide = await ridesModel.findById(ride._id);
+		currentRide.status = statusAfterSimulation;
+		await currentRide.save();
+		await emitRideStatus(currentRide, io);
+	});
 	simulation.on('error', error => console.error('Errore simulatore:', error.message));
-	simulation.stdin.write(JSON.stringify(routes || [[], []])); //invio route
+	simulation.stdin.write(JSON.stringify(route || []));
 	simulation.stdin.end();
 	activeSimulations.set(String(ride._id), simulation);
+};
+
+const stopRideSimulation = rideId => {
+	const simulation = activeSimulations.get(String(rideId));
+	if (simulation) {
+		simulation.kill();
+		activeSimulations.delete(String(rideId));
+	}
 };
 
 exports.createRide = async (req, res) => {
@@ -91,16 +102,13 @@ const populateRide = query => query
 exports.updateRideStatus = async (req, res) => {
 	try {
 		const { id } = req.params;
-		const { status, routes } = req.body;
+		const { status } = req.body;
 		const ride = await ridesModel.findById(id);
 		if (!ride) {
 			return res.status(404).json({ error: 'Corsa non trovata' });
 		}
 		ride.status = status;
 		await ride.save();
-		if (status === 'in_progress') {
-			startRideSimulation(ride, req.user.user_Id, routes);
-		}
 		if (status === 'completed' || status === 'cancelled') {
 			stopRideSimulation(ride._id);
 		}
@@ -114,16 +122,32 @@ exports.updateRideStatus = async (req, res) => {
 	}
 };
 
+exports.startRideRoute = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const { route, statusAfterSimulation } = req.body;
+		const ride = await ridesModel.findById(id);
+
+		startRideSimulation(
+			ride,
+			req.user.user_Id,
+			route,
+			statusAfterSimulation,
+			req.app.get('io')
+		);
+		return res.status(202).json({ message: 'Simulazione avviata' });
+	} catch (error) {
+		return res.status(500).json({ error: error.message });
+	}
+};
+
 exports.updateRideLocation = async (req, res) => {
 	try {
 		const { id } = req.params;
 		const { location } = req.body;
 		const ride = await ridesModel.findById(id);
 
-		//currentLocations.set(String(ride._id), location);
-		//const locationUpdate = { rideId: ride._id, location };
 		const io = req.app.get('io');
-		//io?.to(`user:${ride.passengerId}`).emit('ride:location-changed', locationUpdate);
 		io?.to(`driver:${ride.driverId}`).emit('ride:location-changed', location);
 		return res.status(200).json({ rideId: ride._id, location });
 	} catch (error) {

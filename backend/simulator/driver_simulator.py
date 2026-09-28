@@ -38,11 +38,7 @@ def main():
     parser.add_argument("--step-seconds", type=float, default=1)
     args = parser.parse_args()
 
-    first_route, second_route = json.load(sys.stdin)
-    if first_route:
-        route = first_route + second_route[1:]
-    else:
-        route = second_route
+    route = json.load(sys.stdin)
 
     simulate_route(
         route,

@@ -5,14 +5,6 @@ const props = defineProps({
   ride: {
     type: Object,
     required: true
-  },
-  driverLocation: {
-    type: Array,
-    default: null
-  },
-  routes: {
-    type: Array,
-    default: () => [[], []]
   }
 })
 
@@ -21,11 +13,7 @@ const emit = defineEmits(['ride-updated'])
 const updateStatus = async status => {
   const response = await axios.patch(
     `http://localhost:3000/api/rides/${props.ride._id}/status`,
-    {
-      status,
-      driverLocation: props.driverLocation?.join(','),
-      routes: props.routes
-    },
+    { status },
     {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -51,7 +39,7 @@ const updateStatus = async status => {
           Vai dal passeggero
         </button>
         <p v-else-if="props.ride.status === 'arriving'" class="text-secondary mb-3">In viaggio verso il passeggero...</p>
-        <p v-else-if="props.ride.status === 'arrived'" class="text-secondary mb-3">Attendi che il passegero salga a bordo...</p>
+        <p v-else-if="props.ride.status === 'arrived'" class="text-secondary mb-3">Attendi che il passeggero salga a bordo...</p>
         <p v-else-if="props.ride.status === 'in_progress'" class="text-secondary mb-3">In viaggio verso la destinazione...</p>
         <button
           v-else-if="props.ride.status === 'arrived'"
