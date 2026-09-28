@@ -6,5 +6,6 @@ const { authenticate } = require('../middlewares/authMiddleware');
 router.post('/', authenticate, controller.createRide);
 router.get('/:id', authenticate, controller.getRideById);
 router.patch('/:id/status', authenticate, controller.updateRideStatus);
+router.patch('/:id/location', authenticate, controller.updateRideLocation);
 
 module.exports = router;

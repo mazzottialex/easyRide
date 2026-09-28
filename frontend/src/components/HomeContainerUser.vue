@@ -50,6 +50,12 @@ const handleRideStatusChanged = (ride) => {
   }
 }
 
+const handleRideLocationChanged = ({location}) => {
+  if (activeRide.value) {
+    activeRide.value.driverLocation = location
+  }
+}
+
 
 const handleBooking = async () => {
   currentView.value = 'route'
@@ -58,8 +64,14 @@ const handleDriverSelected = async (driver) => {
   selectedDriver.value = driver.value
 }
 
-onMounted(() => socket.on('ride:status-changed', handleRideStatusChanged)) //listener socket
-onBeforeUnmount(() => socket.off('ride:status-changed', handleRideStatusChanged))
+onMounted(() => {
+  socket.on('ride:status-changed', handleRideStatusChanged)
+  socket.on('ride:location-changed', handleRideLocationChanged)
+}) //listener socket
+onBeforeUnmount(() => {
+  socket.off('ride:status-changed', handleRideStatusChanged)
+  socket.off('ride:location-changed', handleRideLocationChanged)
+})
 </script>
 
 <template>
@@ -92,6 +104,11 @@ onBeforeUnmount(() => socket.off('ride:status-changed', handleRideStatusChanged)
     />
   </div>
   <div v-else-if="currentView === 'ride'" class="text-center mt-5">
+    <MapForm
+      :pickup-location="activeRide?.pickup"
+      :dropoff-location="activeRide?.dropoff"
+      :driver-location="activeRide?.driverLocation"
+    />
     <p class="text-secondary">Stato: {{ activeRide?.status }}</p>
   </div>
 </template>
