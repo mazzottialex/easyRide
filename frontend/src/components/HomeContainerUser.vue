@@ -5,6 +5,7 @@ import SelectionLocationForm from "./SelectionLocationForm.vue"
 import MapForm from "./MapForm.vue"
 import SelectionDriverForm from "./formUser/SelectionDriverForm.vue"
 import { getSocket } from '../services/socket'
+import ControlRideForm from "./formUser/ControlRideFormUser.vue"
 
 const currentView = ref('booking')
 
@@ -47,6 +48,10 @@ const handleRideAccepted = (ride) => {
 const handleRideStatusChanged = (ride) => {
   if (activeRide.value?._id === ride._id) {
     activeRide.value = ride
+    if (ride.status === 'completed') {
+      activeRide.value = null
+      currentView.value = 'booking'
+    }
   }
 }
 
@@ -108,6 +113,10 @@ onBeforeUnmount(() => {
       :pickup-location="activeRide?.pickup"
       :dropoff-location="activeRide?.dropoff"
       :driver-location="activeRide?.driverLocation"
+    />
+    <ControlRideForm
+      :ride="activeRide"
+      @ride-updated="handleRideStatusChanged"
     />
     <p class="text-secondary">Stato: {{ activeRide?.status }}</p>
   </div>

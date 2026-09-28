@@ -46,17 +46,20 @@ const updateStatus = async status => {
           v-if="props.ride.status === 'accepted'"
           type="button"
           class="btn btn-primary w-100 rounded-pill fw-bold"
-          @click="updateStatus('in_progress')"
+          @click="updateStatus('arriving')"
         >
-          Inizia corsa
+          Vai dal passeggero
         </button>
+        <p v-else-if="props.ride.status === 'arriving'" class="text-secondary mb-3">In viaggio verso il passeggero...</p>
+        <p v-else-if="props.ride.status === 'arrived'" class="text-secondary mb-3">Attendi che il passegero salga a bordo...</p>
+        <p v-else-if="props.ride.status === 'in_progress'" class="text-secondary mb-3">In viaggio verso la destinazione...</p>
         <button
-          v-if="props.ride.status === 'in_progress'"
+          v-else-if="props.ride.status === 'arrived'"
           type="button"
           class="btn btn-success w-100 rounded-pill fw-bold"
           @click="updateStatus('completed')"
         >
-          Completa corsa
+          Corsa completata, torna al menu principale
         </button>
       </div>
     </div>

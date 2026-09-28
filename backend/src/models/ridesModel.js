@@ -5,7 +5,7 @@ const RideSchema = new mongoose.Schema({
     driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'Driver', required: true},
     pickup: { type: String, required: true },
     dropoff: { type: String, required: true },
-    status: { type: String, enum: ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'], default: 'pending'},
+    status: { type: String, enum: ['pending', 'accepted', 'arriving', 'arrived', 'in_progress', 'completed', 'cancelled'], default: 'pending'},
     price: { type: Number, required: true },
     dateTime: { type: Date, required: true, default: Date.now }
 });
