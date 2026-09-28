@@ -24,6 +24,10 @@ const updateStatus = async status => {
   )
   emit('ride-updated', response.data)
 }
+
+const completeRide = async () => {
+  
+}
 </script>
 
 <template>

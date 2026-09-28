@@ -12,6 +12,7 @@ const emitRideStatus = async (ride, io) => {
 	const updatedRide = await populateRide(ridesModel.findById(ride._id));
 	io?.to(`user:${ride.passengerId}`).emit('ride:status-changed', updatedRide);
 	io?.to(`driver:${ride.driverId}`).emit('ride:status-changed', updatedRide);
+	return updatedRide;
 };
 
 const startRideSimulation = (ride, userId, route, statusAfterSimulation, io) => {
@@ -112,11 +113,10 @@ exports.updateRideStatus = async (req, res) => {
 		if (status === 'completed' || status === 'cancelled') {
 			stopRideSimulation(ride._id);
 		}
-		const updatedRide = await populateRide(ridesModel.findById(ride._id));
 		const io = req.app.get('io');
-		io?.to(`user:${ride.passengerId}`).emit('ride:status-changed', updatedRide);
-		io?.to(`driver:${ride.driverId}`).emit('ride:status-changed', updatedRide);
-		return res.status(200).json(updatedRide);;
+		updatedRide = await emitRideStatus(ride, io);
+		
+		return res.status(200).json(updatedRide);
 	} catch (error) {
 		return res.status(500).json({ error: error.message });
 	}

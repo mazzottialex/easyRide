@@ -25,7 +25,7 @@ const addRequest = req => {
   }
 }
 
-const respondToRequest = async (request, status) => {
+const updateStatus = async (request, status) => {
   const response = await axios.patch(
     `http://localhost:3000/api/rides/${request._id}/status`,
     { status },
@@ -35,18 +35,12 @@ const respondToRequest = async (request, status) => {
       }
     }
   )
-  return response.data
-}
-
-const acceptRequest = async req => {
-  const ride = await respondToRequest(req, 'accepted')
-  emit('rideData', ride)
-}
-const rejectRequest = async req => {
-  await respondToRequest(req, 'cancelled')
-  requests.value = requests.value.filter(
-    currentRequest => currentRequest._id !== req._id
+  emit('rideData', response.data)
+  if(status === 'cancelled'){
+    requests.value = requests.value.filter(
+    currentRequest => currentRequest._id !== request._id
   )
+  }
 }
 
 onMounted(() => {
@@ -80,10 +74,10 @@ onBeforeUnmount(() => {
             :dropoff-location="request.dropoff" 
           />
           <div class="d-flex gap-2 mt-4">
-            <button type="button" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold" @click="acceptRequest(request)">
+            <button type="button" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold" @click="updateStatus(request, 'accepted')">
               Accetta
             </button>
-            <button type="button" class="btn btn-outline-danger btn-lg w-100 rounded-pill fw-bold" @click="rejectRequest(request)">
+            <button type="button" class="btn btn-outline-danger btn-lg w-100 rounded-pill fw-bold" @click="updateStatus(request, 'cancelled')">
               Rifiuta
             </button>
           </div>

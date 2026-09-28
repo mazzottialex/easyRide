@@ -22,6 +22,10 @@ const updateStatus = async status => {
   )
   emit('ride-updated', response.data)
 }
+
+const completeRide = async () => {
+  
+}
 </script>
 
 <template>
@@ -45,7 +49,7 @@ const updateStatus = async status => {
           v-else-if="props.ride.status === 'arrived'"
           type="button"
           class="btn btn-success w-100 rounded-pill fw-bold"
-          @click="updateStatus('completed')"
+          @click="completeRide()"
         >
           Corsa completata, torna al menu principale
         </button>
