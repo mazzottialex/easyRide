@@ -5,6 +5,6 @@ const { authenticate } = require('../middlewares/authMiddleware');
 
 router.get('/available', authenticate, controller.getAvailableDrivers);
 router.get('/status', authenticate, controller.getDriverStatus);
-router.patch('/status', authenticate, controller.setDriverStatus);
+router.post('/status', authenticate, controller.setDriverAvailable);
 
 module.exports = router;

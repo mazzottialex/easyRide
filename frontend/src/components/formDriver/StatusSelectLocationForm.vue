@@ -4,8 +4,7 @@ import { onMounted, ref } from 'vue'
 const currentUser = ref(null)
 const props = defineProps({
   isOnline: {
-    type: Boolean,
-    required: true
+    type: Boolean
   },
   location: {
     type: Array,
@@ -13,7 +12,11 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['toggle-online', 'select-location'])
+const emit = defineEmits(['change-status', 'select-location'])
+
+const handleClick = async () => {
+  emit('change-status', !props.isOnline)
+}
 
 onMounted(() => {
   const user = localStorage.getItem('user');
@@ -46,7 +49,7 @@ onMounted(() => {
           type="button"
           class="btn btn-primary btn-lg w-100 rounded-pill fw-bold"
           :disabled="!props.isOnline && !props.location"
-          @click="emit('toggle-online')"
+          @click="handleClick()"
         >
           {{ props.isOnline ? 'Vai offline' : 'Vai online' }}
         </button>

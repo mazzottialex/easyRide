@@ -59,7 +59,7 @@ exports.createRide = async (req, res) => {
 		const { driverId, pickup, dropoff, price } = req.body;
         const driver = await driverModel.findOne({
 			_id: driverId,
-			status: 'available'
+			available: true
 		});
         if (!driver) {
 			return res.status(409).json({ error: 'Driver non disponibile' });

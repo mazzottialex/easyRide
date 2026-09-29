@@ -50,7 +50,7 @@ exports.createDriver = async (req, res) => {
         await user.save();
         const driver = new driverModel({
             userId: user._id,
-            status: 'unavailable'
+            available: false
         });
         await driver.save();
         const vehicle = new vehiclesModel({

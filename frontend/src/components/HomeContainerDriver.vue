@@ -9,14 +9,13 @@ import SelectionLocationForm from './SelectionLocationForm.vue'
 import MapForm from './MapForm.vue'
 import { getSocket } from '../services/socket'
 
-const status = ref('unavailable')
+const available = ref(null)
 const currentView = ref('offline')
 const currentUser = ref(null)
 const driverLocation = ref(null)
 const currentRide = ref(null)
 const rideRoutes = ref([[], []])
 const socket = getSocket()
-const isOnline = computed(() => status.value === 'available')
 
 const router = useRouter()
 
@@ -37,29 +36,25 @@ const loadStatus = async () => {
         }
       }
     )
-    status.value = response.data.status
+    available.value = response.data.available
   } catch (error) {
     handleRequestError(error)
   }
 }
 
-const toggleStatus = async () => {
-  if (!driverLocation.value && status.value !== 'available') {
-    return
-  }
+const changeStatus = async newStatus => {
   try {
-    const newStatus = status.value === 'available' ? 'unavailable' : 'available'
-    const response = await axios.patch(
+    await axios.post(
       'http://localhost:3000/api/drivers/status',
-      { status: newStatus },
+      { available: newStatus },
       {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       }
     )
-    status.value = response.data.status
-    currentView.value = isOnline.value ? 'online' : 'offline'
+    available.value = newStatus
+    currentView.value = available.value ? 'online' : 'offline'
   } catch (error) {
     handleRequestError(error)
   }
@@ -71,7 +66,7 @@ const openLocationSelection = () => {
 
 const handleLocationSelected = coordinates => {
   driverLocation.value = coordinates
-  if(status.value === 'available')
+  if(available.value === true)
     currentView.value = 'online'
   else
     currentView.value = 'offline'
@@ -149,9 +144,9 @@ onBeforeUnmount(() => {
   <main class="container py-5">
     <DriverStatusForm
       v-if="currentView !== 'selectionLocation' && currentView !== 'rideInProgress'"
-      :is-online="isOnline"
+      :is-online="available"
       :location="driverLocation"
-      @toggle-online="toggleStatus"
+      @change-status="changeStatus"
       @select-location="openLocationSelection"
     />
     <SelectionLocationForm 
@@ -160,7 +155,7 @@ onBeforeUnmount(() => {
       @location-selected="handleLocationSelected"
     />
     <RequestForm
-      v-if="isOnline && currentView !== 'rideInProgress'"
+      v-if="available && currentView !== 'rideInProgress'"
       :driver-location="driverLocation"
       class="mt-4"
       @ride-data="handleRideData"
