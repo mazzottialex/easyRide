@@ -13,6 +13,7 @@ const availableDrivers = ref([])
 const selectedDriver = ref(null)
 const errorMessage = ref(null)
 const requestSent = ref(false)
+const requestRejected = ref(false)
 const socket = getSocket()
 const ride = ref(null)
 
@@ -33,6 +34,7 @@ const loadDrivers = async () => {
 }
 const selectDriver = (driver) => {
     selectedDriver.value = driver
+    requestRejected.value = false
     //emit('driver-selected', driver)
 }
 
@@ -68,6 +70,13 @@ const handleRideStatusChanged = (rideRec) => {
     emit('ride-accepted', ride)
     emit('driver-selected', selectDriver)
   }
+  else if (rideRec?.status == "cancelled") {
+    requestRejected.value = true
+    requestSent.value = false
+    requests.value = requests.value.filter(
+      currentRequest => currentRequest._id !== rideRec._id
+    )
+  }
 }
 
 onMounted(() => {
@@ -86,9 +95,6 @@ onBeforeUnmount(() => {
             <div class="card-body p-4">
                 <h2 class="h5 text-center text-dark fw-bold mb-3">
                     Scegli un autista
-                </h2>
-                <h2 class="h5 text-center text-dark fw-bold mb-3">
-                    Stato: {{ ride?.status }}
                 </h2>
                 <div v-if="errorMessage" class="alert alert-danger" role="alert">
                     {{ errorMessage }}
@@ -117,7 +123,7 @@ onBeforeUnmount(() => {
                             <span v-if="selectedDriver?._id === driver._id" class="ms-auto text-primary fw-bold">Selezionato</span>
                         </button>
                     </div>
-                    <div v-if="selectedDriver && !requestSent" class="alert alert-primary mt-3 mb-0 d-flex justify-content-between align-items-center gap-3" role="status">
+                    <div v-if="selectedDriver && !requestSent && !requestRejected" class="alert alert-primary mt-3 mb-0 d-flex justify-content-between align-items-center gap-3" role="status">
                         <div>
                             <div class="fw-bold small">Conferma richiesta</div>
                                 Vuoi inviare la richiesta a {{ selectedDriver.userId?.name }}?
@@ -128,6 +134,9 @@ onBeforeUnmount(() => {
                     </div>
                     <div v-if="requestSent" class="alert alert-success mt-3 mb-0" role="status">
                         Richiesta inviata. Attendi la risposta del driver.
+                    </div>
+                    <div v-else-if="requestRejected" class="alert alert-danger mt-3 mb-0" role="status">
+                        Il driver ha rifiutato la tua richiesta. Seleziona un altro driver.
                     </div>
                 </div>
             </div>

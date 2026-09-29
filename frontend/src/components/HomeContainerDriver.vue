@@ -38,7 +38,6 @@ const loadStatus = async () => {
       }
     )
     status.value = response.data.status
-    currentView.value = isOnline.value ? 'online' : 'offline'
   } catch (error) {
     handleRequestError(error)
   }
@@ -78,24 +77,27 @@ const handleLocationSelected = coordinates => {
     currentView.value = 'offline'
 }
 
-const handleRideAccepted = ride => {
+const handleRideData = ride => {
   currentRide.value = ride
   //const location = driverLocation.value.join(',')
   //socket.emit('driver:location', {rideId: ride.value._id, location}) //invio la posizione allo user
-  currentView.value = 'rideInProgress'
+  //currentView.value = 'rideInProgress'
 }
 
 const handleRideUpdated = ride => {
   currentRide.value = ride
-  if (ride.status === 'arriving') {
+  if (ride.status === 'accepted') {
+    currentView.value = 'rideInProgress'
+  }
+  else if (ride.status === 'cancelled') {
+    currentRide.value = null
+    //currentView.value = isOnline.value ? 'online' : 'offline'
+  }
+  else if (ride.status === 'arriving') {
     sendRoute(rideRoutes.value[0], 'arrived')
   }
   else if (ride.status === 'in_progress') {
     sendRoute(rideRoutes.value[1], 'completed')
-  }
-  else if (ride.status === 'completed' || ride.status === 'cancelled') {
-    currentRide.value = null
-    currentView.value = isOnline.value ? 'online' : 'offline'
   }
 }
 
@@ -161,17 +163,16 @@ onBeforeUnmount(() => {
       v-if="isOnline && currentView !== 'rideInProgress'"
       :driver-location="driverLocation"
       class="mt-4"
-      @ride-data="handleRideAccepted"
+      @ride-data="handleRideData"
     />
     <ControlRideForm
-      v-if="currentRide"
+      v-if="currentRide && currentRide?.status !== 'cancelled'"
       :ride="currentRide"
       @ride-updated="handleRideUpdated"
     />
     <div class="w-50 mx-auto">
-
       <MapForm
-        v-if="currentRide"
+        v-if="currentRide && currentRide?.status !== 'cancelled'"
         :loc="[driverLocation, currentRide?.pickup, currentRide?.dropoff]"
         @route-calculated="handleRouteCalculated"
       />

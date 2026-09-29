@@ -48,7 +48,7 @@ const handleRideAccepted = (ride) => {
 const handleRideStatusChanged = (ride) => {
   if (activeRide.value?._id === ride._id) {
     activeRide.value = ride
-    if (ride.status === 'completed') {
+    if (ride.status === 'completed' || ride.status === 'cancelled') {
       activeRide.value = null
       currentView.value = 'booking'
     }
