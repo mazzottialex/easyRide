@@ -69,9 +69,7 @@ onBeforeUnmount(() => {
             Prezzo corsa: {{ Number(request.price).toFixed(2) }} €
           </p>
           <MapForm
-            :driver-location="props.driverLocation"
-            :pickup-location="request.pickup"
-            :dropoff-location="request.dropoff" 
+            :loc="[props.driverLocation, request.pickup, request.dropoff]"
           />
           <div class="d-flex gap-2 mt-4">
             <button type="button" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold" @click="updateStatus(request, 'accepted')">

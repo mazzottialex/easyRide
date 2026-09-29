@@ -56,7 +56,12 @@ const handleRideStatusChanged = (ride) => {
 }
 
 const handleRideLocationChanged = ({location}) => {
-  if (activeRide.value) {
+
+  if (activeRide.value?.status !== 'arrived') {
+    activeRide.value.pickup = location
+    activeRide.value.driverLocation = null
+  }
+  else {
     activeRide.value.driverLocation = location
   }
 }
@@ -95,8 +100,7 @@ onBeforeUnmount(() => {
   <div v-else-if="currentView === 'route'">
     <div class="w-50 mx-auto">
       <MapForm
-        :pickup-location="bookingData.pickup"
-        :dropoff-location="bookingData.dropoff"
+        :loc="[null,bookingData.pickup, bookingData.dropoff]"
       />
     </div>
     <SelectionDriverForm
@@ -110,9 +114,7 @@ onBeforeUnmount(() => {
   </div>
   <div v-else-if="currentView === 'ride'" class="text-center mt-5">
     <MapForm
-      :pickup-location="activeRide?.pickup"
-      :dropoff-location="activeRide?.dropoff"
-      :driver-location="activeRide?.driverLocation"
+      :loc="[activeRide?.driverLocation, activeRide?.pickup, activeRide?.dropoff]"
     />
     <ControlRideForm
       :ride="activeRide"

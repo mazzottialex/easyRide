@@ -78,8 +78,10 @@ const handleLocationSelected = coordinates => {
     currentView.value = 'offline'
 }
 
-const handleRideData = ride => {
+const handleRideAccepted = ride => {
   currentRide.value = ride
+  //const location = driverLocation.value.join(',')
+  //socket.emit('driver:location', {rideId: ride.value._id, location}) //invio la posizione allo user
   currentView.value = 'rideInProgress'
 }
 
@@ -159,7 +161,7 @@ onBeforeUnmount(() => {
       v-if="isOnline && currentView !== 'rideInProgress'"
       :driver-location="driverLocation"
       class="mt-4"
-      @ride-data="handleRideData"
+      @ride-data="handleRideAccepted"
     />
     <ControlRideForm
       v-if="currentRide"
@@ -170,9 +172,7 @@ onBeforeUnmount(() => {
 
       <MapForm
         v-if="currentRide"
-        :pickup-location="currentRide?.pickup"
-        :dropoff-location="currentRide?.dropoff"
-        :driver-location="driverLocation"
+        :loc="[driverLocation, currentRide?.pickup, currentRide?.dropoff]"
         @route-calculated="handleRouteCalculated"
       />
     </div>
