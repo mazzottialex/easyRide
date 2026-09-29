@@ -131,7 +131,6 @@ const handleRideLocationChanged = location => {
 }
 
 const completeRide = () => {
-  console.log('completeRide called')
   currentRide.value = null
   currentView.value = available.value ? 'online' : 'offline'
 }

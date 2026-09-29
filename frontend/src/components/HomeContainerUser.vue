@@ -48,7 +48,7 @@ const handleRideAccepted = (ride) => {
 const handleRideStatusChanged = (ride) => {
   if (activeRide.value?._id === ride._id) {
     activeRide.value = ride
-    if (ride.status === 'completed' || ride.status === 'cancelled') {
+    if (ride.status === 'cancelled') {
       activeRide.value = null
       currentView.value = 'booking'
     }
@@ -56,8 +56,8 @@ const handleRideStatusChanged = (ride) => {
 }
 
 const handleRideLocationChanged = ({location}) => {
-
-  if (activeRide.value?.status !== 'arrived') {
+  console.log(activeRide.value?.status)
+  if (activeRide.value?.status === 'in_progress' && activeRide.value?.status !== 'completed') {
     activeRide.value.pickup = location
     activeRide.value.driverLocation = null
   }
@@ -72,6 +72,11 @@ const handleBooking = async () => {
 }
 const handleDriverSelected = async (driver) => {
   selectedDriver.value = driver.value
+}
+
+const completeRide = () => {
+  activeRide.value = null
+  currentView.value = "booking"
 }
 
 onMounted(() => {
@@ -113,13 +118,17 @@ onBeforeUnmount(() => {
     />
   </div>
   <div v-else-if="currentView === 'ride'" class="text-center mt-5">
-    <MapForm
-      :loc="[activeRide?.driverLocation, activeRide?.pickup, activeRide?.dropoff]"
-    />
     <ControlRideForm
       :ride="activeRide"
       @ride-updated="handleRideStatusChanged"
+      @ride-completed="completeRide"
     />
     <p class="text-secondary">Stato: {{ activeRide?.status }}</p>
+    <div class="w-50 mx-auto">
+      <MapForm 
+        v-if="activeRide?.status !== 'completed'"
+        :loc="[activeRide?.driverLocation, activeRide?.pickup, activeRide?.dropoff]"
+      />
+    </div>
   </div>
 </template>
