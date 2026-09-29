@@ -7,25 +7,18 @@ import axios from 'axios'
 const mapElement = ref(null)
 const routePaths = ref([])
 const routePoints = ref([])
-let routeCoordinates = [[], []]
+
+let routeCoordinates = []
 let map = null
 let mapLoaded = false
 
 const emit = defineEmits(['route-calculated'])
 
 const props = defineProps({
-  pickupLocation: {
-    type: [Array, String],
-    default: null
+  loc: {
+    type: Array,
+    default: () => []
   },
-  dropoffLocation: {
-    type: [Array, String],
-    default: null
-  },
-  driverLocation: {
-    type: [Array, String],
-    default: null
-  }
 })
 
 const updateRouteOverlay = () => {
@@ -33,19 +26,26 @@ const updateRouteOverlay = () => {
     const point = map.project(coordinate)
     return `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`
   }).join(' '))
-  const points = [
-    { name: 'driver', coordinate: props.driverLocation, color: 'blue' },
-    { name: 'pickup', coordinate: props.pickupLocation, color: 'green' },
-    { name: 'dropoff', coordinate: props.dropoffLocation, color: 'yellow' }
+  const colors = [
+    'blue',
+    'green',
+    'yellow'
   ]
-  routePoints.value = points.map(({ name, coordinate: location, color }) => {
-    const coordinate = toCoordinates(location)
-    if (!coordinate) {
-      return null
-    }
-    const projected = map.project(coordinate)
-    return { name, coordinate: location, color, x: projected.x, y: projected.y }
-  }).filter(Boolean)
+
+  routePoints.value = props.loc.map((location, index) => {
+      const coordinate = toCoordinates(location)
+      if (!coordinate) {
+        return null
+      }
+      const projected = map.project(coordinate)
+      return {
+        name: `loc-${index}`,
+        coordinate: location,
+        color: colors[index % colors.length],
+        x: projected.x,
+        y: projected.y
+      }
+    }).filter(Boolean)
 }
 
 const toCoordinates = location => {
@@ -58,14 +58,19 @@ const toCoordinates = location => {
   return null
 }
 
+
+
 const drawRoute = routes => {
-  routeCoordinates = routes || [[], []]
+  routeCoordinates = routes
   updateRouteOverlay()
 }
 
 const getRoute = async (posA, posB) => {
   const corA = toCoordinates(posA)
   const corB = toCoordinates(posB)
+  if (!corA || !corB) {
+    return []
+  }
   try {
     const response = await axios.get('http://localhost:3000/api/routing/route',{
       params: {
@@ -80,34 +85,31 @@ const getRoute = async (posA, posB) => {
 }
 
 const computeRoute = async () => {
-  let firstRoute = []
-  if (props.driverLocation !== null) {
-    firstRoute = await getRoute(
-      props.driverLocation,
-      props.pickupLocation
-    )
+  if (props.loc.length < 2) {
+    return []
   }
-  const secondRoute = await getRoute(
-    props.pickupLocation,
-    props.dropoffLocation
-  )
+  const routes = []
+  for (let i = 0; i < props.loc.length - 1; i++) {
+    const route = await getRoute(
+      props.loc[i],
+      props.loc[i + 1]
+    )
+    routes.push(route)
+  }
+  return routes
+}
 
-  return [firstRoute, secondRoute]
+const refreshRoutes = async () => {
+  updateRouteOverlay()
+  const routes = await computeRoute()
+  drawRoute(routes)
+  emit('route-calculated', routes)
 }
 
 watch(
-  () => [
-    props.pickupLocation,
-    props.dropoffLocation,
-    props.driverLocation
-  ],
+  () => props.loc,
   async () => {
-    updateRouteOverlay()
-    if (mapLoaded) {
-      const routes = await computeRoute()
-      drawRoute(routes)
-      emit('route-calculated', routes)
-    }
+    await refreshRoutes()
   }
 )
 
