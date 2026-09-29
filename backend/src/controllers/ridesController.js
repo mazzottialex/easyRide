@@ -16,7 +16,10 @@ const emitRideStatus = async (ride, io) => {
 };
 
 const startRideSimulation = (ride, userId, route, statusAfterSimulation, io) => {
-	stopRideSimulation(ride._id);
+	const rideId = String(ride._id);
+	if (activeSimulations.has(rideId)) {
+		return;
+	}
 
 	const token = jwt.sign({ user_Id: userId }, JWT_KEY, { expiresIn: '1h' });
 	const scriptPath = path.join(__dirname, '../../simulator/driver_simulator.py');
@@ -24,26 +27,35 @@ const startRideSimulation = (ride, userId, route, statusAfterSimulation, io) => 
 		'python',
 		[
 			scriptPath,
-			String(ride._id),
+			rideId,
 			token,
 			'--step-seconds',
 			'0.01'
 		]
 	);
 
+	activeSimulations.set(rideId, simulation);
 	simulation.stdout.on('data', output => console.log(`[simulator] ${output}`));
 	simulation.stderr.on('data', output => console.error(`[simulator] ${output}`));
 	simulation.on('close', async () => {
-		activeSimulations.delete(String(ride._id));
-		const currentRide = await ridesModel.findById(ride._id);
+		activeSimulations.delete(rideId);
+
+		const currentRide = await ridesModel.findById(rideId);
+		if (!currentRide) {
+			return;
+		}
+		if (currentRide.status === 'cancelled' || currentRide.status === 'completed') {
+			return;
+		}
 		currentRide.status = statusAfterSimulation;
 		await currentRide.save();
 		await emitRideStatus(currentRide, io);
 	});
-	simulation.on('error', error => console.error('Errore simulatore:', error.message));
+
+	simulation.on('error', error => {activeSimulations.delete(rideId);console.error('Errore simulatore:',error.message);
+	});
 	simulation.stdin.write(JSON.stringify(route || []));
 	simulation.stdin.end();
-	activeSimulations.set(String(ride._id), simulation);
 };
 
 const stopRideSimulation = rideId => {
