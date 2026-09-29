@@ -8,7 +8,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['ride-updated'])
+const emit = defineEmits(['ride-updated', 'ride-completed'])
 
 const updateStatus = async status => {
   const response = await axios.patch(
@@ -24,7 +24,7 @@ const updateStatus = async status => {
 }
 
 const completeRide = async () => {
-  
+    emit('ride-completed')
 }
 </script>
 
@@ -46,7 +46,7 @@ const completeRide = async () => {
         <p v-else-if="props.ride.status === 'arrived'" class="text-secondary mb-3">Attendi che il passeggero salga a bordo...</p>
         <p v-else-if="props.ride.status === 'in_progress'" class="text-secondary mb-3">In viaggio verso la destinazione...</p>
         <button
-          v-else-if="props.ride.status === 'arrived'"
+          v-else-if="props.ride.status === 'completed'"
           type="button"
           class="btn btn-success w-100 rounded-pill fw-bold"
           @click="completeRide()"

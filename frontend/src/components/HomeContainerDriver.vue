@@ -46,7 +46,7 @@ const changeStatus = async newStatus => {
   try {
     await axios.post(
       'http://localhost:3000/api/drivers/status',
-      { available: newStatus },
+      { av: newStatus },
       {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -82,6 +82,7 @@ const handleRideData = ride => {
 const handleRideUpdated = ride => {
   currentRide.value = ride
   if (ride.status === 'accepted') {
+    changeStatus(false)
     currentView.value = 'rideInProgress'
   }
   else if (ride.status === 'cancelled') {
@@ -93,6 +94,9 @@ const handleRideUpdated = ride => {
   }
   else if (ride.status === 'in_progress') {
     sendRoute(rideRoutes.value[1], 'completed')
+  }
+  else if (ride.status === 'completed') {
+
   }
 }
 
@@ -116,14 +120,29 @@ const handleRouteCalculated = routes => {
 }
 
 const handleRideLocationChanged = location => {
-  driverLocation.value = location.split(',').map(Number)
+  if (currentRide.value.status === 'in_progress' || currentRide.value.status === 'completed') {
+    currentRide.value.pickup = location.split(',').map(Number)
+    driverLocation.value = null
+  }
+  else {
+    driverLocation.value = location.split(',').map(Number)
+  }
   socket.emit('driver:location', {rideId: currentRide.value._id, location})
+}
+
+const completeRide = () => {
+  console.log('completeRide called')
+  currentRide.value = null
+  currentView.value = available.value ? 'online' : 'offline'
 }
 
 onMounted(async () => {
   socket.on('ride:location-changed', handleRideLocationChanged)
   socket.on('ride:status-changed', handleRideUpdated)
   await loadStatus()
+  if (available.value && driverLocation.value === null) {
+    await changeStatus(false)
+  }
   const user = localStorage.getItem('user');
   if (user) {
     try {
@@ -142,8 +161,9 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="container py-5">
+    <p1> current ride: {{ currentRide }}</p1>
     <DriverStatusForm
-      v-if="currentView !== 'selectionLocation' && currentView !== 'rideInProgress'"
+      v-if="currentView !== 'selectionLocation' && !currentRide"
       :is-online="available"
       :location="driverLocation"
       @change-status="changeStatus"
@@ -164,10 +184,11 @@ onBeforeUnmount(() => {
       v-if="currentRide && currentRide?.status !== 'cancelled'"
       :ride="currentRide"
       @ride-updated="handleRideUpdated"
+      @ride-completed="completeRide"
     />
     <div class="w-50 mx-auto">
       <MapForm
-        v-if="currentRide && currentRide?.status !== 'cancelled'"
+        v-if="currentRide && currentRide?.status !== 'cancelled' && currentRide?.status !== 'completed'"
         :loc="[driverLocation, currentRide?.pickup, currentRide?.dropoff]"
         @route-calculated="handleRouteCalculated"
       />

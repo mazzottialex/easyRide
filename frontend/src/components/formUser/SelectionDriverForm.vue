@@ -81,8 +81,8 @@ const handleRideStatusChanged = (rideRec) => {
 
 onMounted(() => {
     loadDrivers()
-    socket.on('driver:status-changed', loadDrivers)
-    socket.on('ride:status-changed', handleRideStatusChanged)
+    socket.on('driver:status-changed', loadDrivers) //aggiorna lista driver disponibili
+    socket.on('ride:status-changed', handleRideStatusChanged) //comunica se la richiesta è stata accettata o rifiutata
 })
 onBeforeUnmount(() => {
     socket.off('driver:status-changed', loadDrivers)
