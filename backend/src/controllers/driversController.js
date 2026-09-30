@@ -4,7 +4,7 @@ const { vehiclesModel } = require('../models/vehiclesModel');
 exports.getAvailableDrivers = async (req, res) => {
 	try {
 		const drivers = await driverModel
-			.find({ available: true })
+			.find({ available: true, location: { $exists: true } })
 			.populate('userId', 'name email')
 
 		const driverId = drivers.map(driver => driver._id);
@@ -17,6 +17,7 @@ exports.getAvailableDrivers = async (req, res) => {
 				_id: driver._id,
 				userId: driver.userId,
 				available: driver.available,
+				location: driver.location,
 				vehicle: vehicles.find(vehicle => vehicle.driverId.toString() === driver._id.toString())
 			};
 		});
@@ -42,10 +43,10 @@ exports.getDriverStatus = async (req, res) => {
 
 exports.setDriverAvailable = async (req, res) => {
     try {
-		const { av } = req.body;
+		const { av, location} = req.body;
         const driver = await driverModel.findOneAndUpdate(
             { userId: req.user.user_Id },
-			{ available: av },
+			{ available: av, location: location },
             { new: true }
         ).populate('userId', 'name email');
 		if (!driver) {

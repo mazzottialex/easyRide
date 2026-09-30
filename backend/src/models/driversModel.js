@@ -2,7 +2,8 @@ const mongoose = require('mongoose')
 
 const DriverSchema = new mongoose.Schema({
     userId: {type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true},
-    available: { type: Boolean, default: false }
+    available: { type: Boolean, default: false },
+    location: { type: String, default: null }
 });
 
 const driverModel = mongoose.model('Driver', DriverSchema)

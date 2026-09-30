@@ -46,7 +46,7 @@ const changeStatus = async newStatus => {
   try {
     await axios.post(
       'http://localhost:3000/api/drivers/status',
-      { av: newStatus },
+      { av: newStatus, location: driverLocation.value.join(',') },
       {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
