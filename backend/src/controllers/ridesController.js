@@ -166,3 +166,39 @@ exports.updateRideLocation = async (req, res) => {
 		return res.status(500).json({ error: error.message });
 	}
 };
+
+
+exports.getRideHistory = async (req, res) => {
+	try {
+		const {status} = req.query;
+		const filter = {};
+		if (status) {
+			filter.status = status;
+		}
+		if (req.user.role === 'driver') {
+			const driver = await driverModel
+				.findOne({ userId: req.user.user_Id })
+				.select('_id');
+			if (!driver) {
+				return res.status(404).json({
+					error: 'Driver non trovato'
+				});
+			}
+			filter.driverId = driver._id;
+		} else
+			filter.passengerId = req.user.user_Id;
+
+		const rides = await populateRide(
+			ridesModel
+				.find(filter)
+				.sort({ dateTime: -1 }) // sort per ordine temporale
+		);
+		return res.status(200).json({
+			rides
+		});
+	} catch (error) {
+		return res.status(500).json({
+			error: error.message
+		});
+	}
+};

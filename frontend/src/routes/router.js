@@ -4,13 +4,15 @@ import LoginPage from '../pages/LoginPage.vue';
 import RegistrationPage from '../pages/RegistrationPage.vue';
 import RegistrationDriverPage from '../pages/RegistrationDriverPage.vue';
 import HomePage from '../pages/HomePage.vue';
+import HistoryPage from '../pages/HystoryPage.vue';
 
 const routes = [
     { path: '/', name: "Landing", component: LandingPage, meta: { requiresGuest: true } },
     { path: '/login', name: "Login", component: LoginPage, meta: { requiresGuest: true } },
     { path: '/registration', name: "Registration", component: RegistrationPage, meta: { requiresGuest: true } },
     { path: '/registration-driver', name: "RegistrationDriver", component: RegistrationDriverPage, meta: { requiresGuest: true } },
-    { path: '/home', name: "Home", component: HomePage, meta: { requiresAuth: true } }
+    { path: '/home', name: "Home", component: HomePage, meta: { requiresAuth: true } },
+    { path: '/history', name: "History", component: HistoryPage, meta: { requiresAuth: true } }
 ];
 
 const router = createRouter({

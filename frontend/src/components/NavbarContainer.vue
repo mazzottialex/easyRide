@@ -24,6 +24,11 @@ const handleLogout = () => {
           <li class="nav-item">
             <a class="nav-link" href="#">Link</a>
           </li>
+          <li class="nav-item">
+            <router-link class="nav-link" to="/history">
+              Storico corse
+            </router-link>
+          </li>
         </ul>
         
         <div class="d-flex align-items-center">
