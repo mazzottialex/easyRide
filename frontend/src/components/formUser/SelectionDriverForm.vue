@@ -3,13 +3,13 @@ import axios from 'axios'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { getSocket } from '../../services/socket'
 
-const emit = defineEmits(['driver-accepted'])
+const emit = defineEmits(['ride-accepted', 'driver-selected'])
 const props = defineProps({
     pickup: { type: [String, Array], required: true },
-    dropoff: { type: [String, Array], required: true },
-    price: { type: Number, required: true }
+    dropoff: { type: [String, Array], required: true }
 })
 const availableDrivers = ref([])
+const driverDataMap = ref(new Map())
 const selectedDriver = ref(null)
 const errorMessage = ref(null)
 const requestSent = ref(false)
@@ -17,8 +17,23 @@ const requestRejected = ref(false)
 const socket = getSocket()
 const ride = ref(null)
 
+const toCoordinates = location => {
+  if (Array.isArray(location)) {
+    return location.map(Number)
+  }
+  if (typeof location === 'string') {
+    return location.split(',').map(value => Number(value.trim()))
+  }
+  return null
+}
+
+const calculatePrice = distance => {
+    return Number((distance * 10).toFixed(2))
+}
+
 const loadDrivers = async () => {
     try {
+        errorMessage.value = null
         const response = await axios.get(
             'http://localhost:3000/api/drivers/available',
             {
@@ -32,24 +47,55 @@ const loadDrivers = async () => {
         errorMessage.value = error.response?.data?.error
     } 
 }
-const selectDriver = (driver) => {
+
+const createMap = async () => {
+    const routeData = await getRoute(props.pickup, props.dropoff)
+    if (!routeData) return
+
+    const distance = Number((Number(routeData.distance) / 1000).toFixed(2))
+    const duration = Math.ceil(Number(routeData.duration) / 60)
+    const price = calculatePrice(distance)
+
+    availableDrivers.value.forEach(driver => {
+        driverDataMap.value.set(driver._id, { distance, duration, price })
+    })
+}
+
+const getRoute = async (posA, posB) => {
+    const corA = toCoordinates(posA)
+    const corB = toCoordinates(posB)
+    if (!corA || !corB) {
+        return []
+    }
+    try {
+        const response = await axios.get('http://localhost:3000/api/routing/route',{
+            params: {
+                pickup: corA.join(','),
+                destination: corB.join(',')
+            }
+        })
+        return response.data?.route
+    } catch (error) {
+        alert(error.message)
+    }
+}
+
+const selectDriver = driver => {
     selectedDriver.value = driver
     requestRejected.value = false
-    //emit('driver-selected', driver)
 }
 
 const requestDriver = async () => {
-    if (!selectedDriver.value) {
-        return
-    }
-
+    if (!selectedDriver.value) return
+    const data = driverDataMap.value.get(selectedDriver.value._id)
+    console.log('Requesting driver:', selectedDriver.value, 'with data:', data)
     const response = await axios.post(
         'http://localhost:3000/api/rides',
         {
             driverId: selectedDriver.value._id,
-            pickup: props.pickup.join(','),
-            dropoff: props.dropoff.join(','),
-            price: props.price
+            pickup: props.pickup?.join(','),
+            dropoff: props.dropoff?.join(','),
+            price: data.price,
         },
         {
             headers: {
@@ -59,7 +105,6 @@ const requestDriver = async () => {
     )
     requestSent.value = true
     ride.value = response.data
-    //emit('ride-created', response.data)
 }
 
 const handleRideStatusChanged = (rideRec) => {
@@ -79,13 +124,19 @@ const handleRideStatusChanged = (rideRec) => {
   }
 }
 
+const loadData = async () => {
+    await loadDrivers()
+    await createMap()
+}
+
 onMounted(() => {
-    loadDrivers()
-    socket.on('driver:status-changed', loadDrivers) //aggiorna lista driver disponibili
+    loadData()
+    socket.on('driver:status-changed', loadData) //aggiorna lista driver disponibili
     socket.on('ride:status-changed', handleRideStatusChanged) //comunica se la richiesta è stata accettata o rifiutata
 })
 onBeforeUnmount(() => {
-    socket.off('driver:status-changed', loadDrivers)
+    socket.off('driver:status-changed', loadData)
+    socket.off('ride:status-changed', handleRideStatusChanged)
 })
 </script>
 
@@ -98,7 +149,7 @@ onBeforeUnmount(() => {
                 </h2>
                 <div v-if="errorMessage" class="alert alert-danger" role="alert">
                     {{ errorMessage }}
-                    <button type="button" class="btn btn-link p-0" @click="loadDrivers">Riprova</button>
+                    <button type="button" class="btn btn-link p-0" @click="loadData">Riprova</button>
                 </div>
                 <div v-else-if="availableDrivers.length === 0" class="alert alert-secondary" role="status">
                     Nessun autista disponibile
@@ -119,6 +170,9 @@ onBeforeUnmount(() => {
                                 <small class="text-secondary">{{ driver.userId?.email }}</small>
                                 <small class="text-secondary">{{ driver.vehicle?.brand }} {{ driver.vehicle?.model }}</small>
                                 <small class="text-secondary">Posti disponibili: {{ driver.vehicle?.seatsAvailable }}</small>
+                                <small class="text-secondary">Prezzo: {{ driverDataMap.get(driver._id)?.price ?? 0 }} €</small>
+                                <small class="text-secondary">Distanza: {{ driverDataMap.get(driver._id)?.distance ?? 0 }} km</small>
+                                <small class="text-secondary">Durata: {{ driverDataMap.get(driver._id)?.duration ?? 0 }} min</small>
                             </span>
                             <span v-if="selectedDriver?._id === driver._id" class="ms-auto text-primary fw-bold">Selezionato</span>
                         </button>
@@ -126,7 +180,7 @@ onBeforeUnmount(() => {
                     <div v-if="selectedDriver && !requestSent && !requestRejected" class="alert alert-primary mt-3 mb-0 d-flex justify-content-between align-items-center gap-3" role="status">
                         <div>
                             <div class="fw-bold small">Conferma richiesta</div>
-                                Vuoi inviare la richiesta a {{ selectedDriver.userId?.name }}?
+                            Vuoi inviare la richiesta a {{ selectedDriver.userId?.name }}?      
                         </div>
                         <button type="button" class="btn btn-primary btn-sm text-nowrap" @click="requestDriver">
                             Conferma richiesta

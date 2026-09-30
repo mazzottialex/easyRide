@@ -17,10 +17,6 @@ const selectedDriver = ref(null)
 const activeRide = ref(null)
 const socket = getSocket()
 
-const ridePrice = computed(() => {
-  return 10
-})
-
 const openPickupMap = () => {
   currentView.value = 'pickup'
 }
@@ -112,7 +108,6 @@ onBeforeUnmount(() => {
       class="mt-4"
       :pickup="bookingData.pickup"
       :dropoff="bookingData.dropoff"
-      :price="ridePrice"
       @driver-selected="handleDriverSelected"
       @ride-accepted="handleRideAccepted"
     />
