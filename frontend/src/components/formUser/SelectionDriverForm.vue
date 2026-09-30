@@ -49,16 +49,35 @@ const loadDrivers = async () => {
 }
 
 const createMap = async () => {
-    const routeData = await getRoute(props.pickup, props.dropoff)
-    if (!routeData) return
+    for (const driver of availableDrivers.value) {
+        const route1 = await getRoute(driver.location, props.pickup)
+        const route2 = await getRoute(props.pickup, props.dropoff)
 
-    const distance = Number((Number(routeData.distance) / 1000).toFixed(2))
-    const duration = Math.ceil(Number(routeData.duration) / 60)
-    const price = calculatePrice(distance)
+        const distanceToPickup = Number((Number(route1.distance)/1000).toFixed(2))
 
-    availableDrivers.value.forEach(driver => {
-        driverDataMap.value.set(driver._id, { distance, duration, price })
-    })
+        const pickupEta = Math.ceil(Number(route1.duration)/60)
+
+        const rideDistance = Number((Number(route2.distance)/1000).toFixed(2))
+
+        const rideDuration = Math.ceil(Number(route2.duration)/60)
+
+        const totalDuration = pickupEta + rideDuration
+
+        const arrivalDate = new Date(Date.now()+totalDuration*60*1000)
+
+        const arrivalTime = arrivalDate.toLocaleTimeString('it-IT',{hour: '2-digit',minute: '2-digit'})
+
+        const price = calculatePrice(rideDistance)
+
+        driverDataMap.value.set(driver._id, {
+            distanceToPickup,
+            pickupEta,
+            rideDistance,
+            rideDuration,
+            arrivalTime,
+            price
+        })
+    }
 }
 
 const getRoute = async (posA, posB) => {
@@ -160,22 +179,50 @@ onBeforeUnmount(() => {
                             v-for="driver in availableDrivers"
                             :key="driver._id"
                             type="button"
-                            class="btn btn-light border d-flex align-items-center gap-3 text-start p-3"
-                            :class="selectedDriver?._id === driver._id ? 'border-primary bg-primary-subtle' : 'border-secondary-subtle'"
-                            role="radio"
+                            class="btn text-start w-100 p-3 border rounded-3"
+                            :class="selectedDriver?._id === driver._id ? 'border-primary bg-primary-subtle' : 'border-secondary-subtle bg-white'"
                             @click="selectDriver(driver)"
-                        >
-                            <span class="d-grid gap-1">
-                                <strong>{{ driver.userId?.name }}</strong>
-                                <small class="text-secondary">{{ driver.location }}</small>
-                                <small class="text-secondary">{{ driver.userId?.email }}</small>
-                                <small class="text-secondary">{{ driver.vehicle?.brand }} {{ driver.vehicle?.model }}</small>
-                                <small class="text-secondary">Posti disponibili: {{ driver.vehicle?.seatsAvailable }}</small>
-                                <small class="text-secondary">Prezzo: {{ driverDataMap.get(driver._id)?.price ?? 0 }} €</small>
-                                <small class="text-secondary">Distanza: {{ driverDataMap.get(driver._id)?.distance ?? 0 }} km</small>
-                                <small class="text-secondary">Durata: {{ driverDataMap.get(driver._id)?.duration ?? 0 }} min</small>
-                            </span>
-                            <span v-if="selectedDriver?._id === driver._id" class="ms-auto text-primary fw-bold">Selezionato</span>
+                            >
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <strong>{{ driver.userId?.name }}</strong>
+                                    <div class="small text-secondary mt-1">
+                                        {{ driver.vehicle?.brand }} {{ driver.vehicle?.model }} · {{ driver.vehicle?.seatsAvailable }} posti
+                                    </div>
+                                </div>
+                                <span v-if="selectedDriver?._id === driver._id" class="text-primary fw-bold small">
+                                    Selezionato
+                                </span>
+                            </div>
+                            <div class="border-top pt-2">
+                                <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-secondary">Arrivo del driver</span>
+                                <strong>
+                                    tra {{ driverDataMap.get(driver._id)?.pickupEta }} min
+                                </strong>
+                                </div>
+                                <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-secondary">Arrivo a destinazione</span>
+                                <strong>
+                                    {{ driverDataMap.get(driver._id)?.arrivalTime }}
+                                </strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center small">
+                                <span class="text-secondary">Distanza corsa</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <strong>
+                                        {{ driverDataMap.get(driver._id)?.rideDistance }} km - 
+                                        {{ driverDataMap.get(driver._id)?.rideDuration }} min
+                                    </strong>
+                                </div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                                <span class="small text-secondary">Prezzo</span>
+                                <strong class="text-primary">
+                                    {{ driverDataMap.get(driver._id)?.price}} €
+                                </strong>
+                            </div>
                         </button>
                     </div>
                     <div v-if="selectedDriver && !requestSent && !requestRejected" class="alert alert-primary mt-3 mb-0 d-flex justify-content-between align-items-center gap-3" role="status">
