@@ -187,7 +187,7 @@ onBeforeUnmount(() => {
                                 <div>
                                     <strong>{{ driver.userId?.name }}</strong>
                                     <div class="small text-secondary mt-1">
-                                        {{ driver.vehicle?.brand }} {{ driver.vehicle?.model }} · {{ driver.vehicle?.seatsAvailable }} posti
+                                        {{ driver.vehicle?.type }} · {{ driver.vehicle?.brand }} {{ driver.vehicle?.model }} · {{ driver.vehicle?.seatsAvailable }} posti
                                     </div>
                                 </div>
                                 <span v-if="selectedDriver?._id === driver._id" class="text-primary fw-bold small">

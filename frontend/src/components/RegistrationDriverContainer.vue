@@ -11,7 +11,8 @@ const registerData = ref({
   brand: "",
   model: "",
   numberPlate: "",
-  color: ""
+  color: "",
+  type: ""
 })
 
 const handleRegister = async () => {
@@ -86,7 +87,16 @@ const handleRegister = async () => {
               <input type="text" class="form-control" v-model="registerData.color" required>
             </div>
           </div>
-          
+
+          <div class="mb-3">
+            <label class="form-label">Classe Veicolo</label>
+            <select class="form-select" v-model="registerData.type" required>
+              <option value="" disabled>Seleziona Classe</option>
+              <option value="lowcost">Low Cost</option>
+              <option value="standard">Standard</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>          
           <button type="submit" class="btn btn-primary w-100 mt-4 py-2 fw-bold">Registrati come Driver</button>
         </form>
 

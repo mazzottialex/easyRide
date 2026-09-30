@@ -10,7 +10,7 @@ exports.getAvailableDrivers = async (req, res) => {
 		const driverId = drivers.map(driver => driver._id);
 		const vehicles = await vehiclesModel
 			.find({ driverId: { $in: driverId } })
-			.select('driverId brand model seatsAvailable')
+			.select('driverId brand model seatsAvailable type')
 
 		const response = drivers.map(driver => {
 			return {

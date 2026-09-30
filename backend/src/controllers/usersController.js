@@ -29,7 +29,7 @@ exports.createUser = (req, res) => {
 //register driver
 exports.createDriver = async (req, res) => {
     try {
-        const { name, email, password, brand, model, numberPlate, color } = req.body;
+        const { name, email, password, brand, model, numberPlate, color, type } = req.body;
 
         const existingName = await userModel.findOne({ name: name });
         const existingEmail = await userModel.findOne({ email: email });
@@ -58,7 +58,8 @@ exports.createDriver = async (req, res) => {
             brand,
             model,
             numberPlate,
-            color
+            color,
+            type
         });
         await vehicle.save();
 
