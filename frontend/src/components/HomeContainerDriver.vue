@@ -5,8 +5,8 @@ import { useRouter } from 'vue-router'
 import DriverStatusForm from './formDriver/StatusSelectLocationForm.vue'
 import RequestForm from './formDriver/RequestForm.vue'
 import ControlRideForm from './formDriver/ControlRideForm.vue'
-import SelectionLocationForm from './SelectionLocationForm.vue'
-import MapForm from './MapForm.vue'
+import SelectionLocationForm from './formShared/SelectionLocationForm.vue'
+import MapForm from './formShared/MapForm.vue'
 import { getSocket } from '../services/socket'
 
 const available = ref(null)

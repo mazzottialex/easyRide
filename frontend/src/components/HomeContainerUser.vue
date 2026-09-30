@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
 import BookingForm from "./formUser/BookingForm.vue"
-import SelectionLocationForm from "./SelectionLocationForm.vue"
-import MapForm from "./MapForm.vue"
+import SelectionLocationForm from "./formShared/SelectionLocationForm.vue/index.js"
+import MapForm from "./formShared/MapForm.vue"
 import SelectionDriverForm from "./formUser/SelectionDriverForm.vue"
 import { getSocket } from '../services/socket'
 import ControlRideForm from "./formUser/ControlRideFormUser.vue"

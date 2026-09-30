@@ -2,7 +2,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import axios from 'axios'
 import { getSocket } from '../../services/socket'
-import MapForm from '../MapForm.vue'
+import MapForm from '../formShared/MapForm.vue'
 
 const emit = defineEmits(['rideData'])
 
