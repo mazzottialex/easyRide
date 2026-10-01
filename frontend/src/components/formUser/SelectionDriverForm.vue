@@ -17,18 +17,21 @@ const requestRejected = ref(false)
 const socket = getSocket()
 const ride = ref(null)
 
-const toCoordinates = location => {
-  if (Array.isArray(location)) {
-    return location.map(Number)
-  }
-  if (typeof location === 'string') {
-    return location.split(',').map(value => Number(value.trim()))
-  }
-  return null
-}
-
-const calculatePrice = distance => {
-    return Number((distance * 10).toFixed(2))
+const calculatePrice = async (driver) => {
+    const response = await axios.get(
+        'http://localhost:3000/api/rides/price',
+        {
+            params: {
+                driverId: driver._id,
+                pickup: props.pickup?.join(','),
+                dropoff: props.dropoff?.join(',')
+            },
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+        }
+    )
+    return response.data
 }
 
 const loadDrivers = async () => {
@@ -49,53 +52,24 @@ const loadDrivers = async () => {
 }
 
 const createMap = async () => {
+    driverDataMap.value.clear()
     for (const driver of availableDrivers.value) {
-        const route1 = await getRoute(driver.location, props.pickup)
-        const route2 = await getRoute(props.pickup, props.dropoff)
+        try {
+            const data = await calculatePrice(driver)
 
-        const distanceToPickup = Number((Number(route1.distance)/1000).toFixed(2))
+            const arrivalDate = new Date(Date.now() + (data.pickupEta + data.rideDuration) * 60 * 1000)
+            const arrivalTime = arrivalDate.toLocaleTimeString('it-IT', {
+                hour: '2-digit',
+                minute: '2-digit'
+            })
 
-        const pickupEta = Math.ceil(Number(route1.duration)/60)
+            const driverData = Object.assign({}, data)
+            driverData.arrivalTime = arrivalTime
 
-        const rideDistance = Number((Number(route2.distance)/1000).toFixed(2))
-
-        const rideDuration = Math.ceil(Number(route2.duration)/60)
-
-        const totalDuration = pickupEta + rideDuration
-
-        const arrivalDate = new Date(Date.now()+totalDuration*60*1000)
-
-        const arrivalTime = arrivalDate.toLocaleTimeString('it-IT',{hour: '2-digit',minute: '2-digit'})
-
-        const price = calculatePrice(rideDistance)
-
-        driverDataMap.value.set(driver._id, {
-            distanceToPickup,
-            pickupEta,
-            rideDistance,
-            rideDuration,
-            arrivalTime,
-            price
-        })
-    }
-}
-
-const getRoute = async (posA, posB) => {
-    const corA = toCoordinates(posA)
-    const corB = toCoordinates(posB)
-    if (!corA || !corB) {
-        return []
-    }
-    try {
-        const response = await axios.get('http://localhost:3000/api/routing/route',{
-            params: {
-                pickup: corA.join(','),
-                destination: corB.join(',')
-            }
-        })
-        return response.data?.route
-    } catch (error) {
-        alert(error.message)
+            driverDataMap.value.set(driver._id, driverData)
+        } catch (error) {
+            console.error('Errore calcolo prezzo:', error)
+        }
     }
 }
 

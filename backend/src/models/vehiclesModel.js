@@ -6,7 +6,7 @@ const VehicleSchema = new mongoose.Schema({
     model: { type: String, required: true },
     numberPlate: { type: String, required: true, unique: true },
     color: { type: String, required: true },
-    seatsAvailable: { type: Number, required: true, default: 4 },
+    seatsAvailable: { type: Number, enum: [4, 8], required: true, default: 4 },
     type: { type: String, enum: ['lowcost', 'standard', 'premium'], required: true, default: 'standard' }
 });
 

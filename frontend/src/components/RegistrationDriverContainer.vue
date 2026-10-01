@@ -12,6 +12,7 @@ const registerData = ref({
   model: "",
   numberPlate: "",
   color: "",
+  seatsAvailable: 4,
   type: ""
 })
 
@@ -86,6 +87,14 @@ const handleRegister = async () => {
               <label class="form-label">Colore</label>
               <input type="text" class="form-control" v-model="registerData.color" required>
             </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Posti disponibili</label>
+            <select class="form-select" v-model.number="registerData.seatsAvailable" required>
+              <option :value="4">4 posti</option>
+              <option :value="8">8 posti</option>
+            </select>
           </div>
 
           <div class="mb-3">
