@@ -4,7 +4,7 @@ import { useRouter } from "vue-router"
 import axios from "axios"
 
 const router = useRouter();
-const loginData = ref({ email: "", password: "" })
+const loginData = ref({ identity: "", password: "" })
 
 const handleLogin = async () => {
   try {
@@ -16,7 +16,7 @@ const handleLogin = async () => {
       email: response.data.email,
       role: response.data.role
     }));
-    router.push('/home');
+    router.push(response.data.role === 'admin' ? '/admin' : '/home');
   } catch (error) {
     const message = error?.response?.data?.message;
     alert(message);
@@ -32,8 +32,8 @@ const handleLogin = async () => {
         
         <form @submit.prevent="handleLogin">
           <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" class="form-control" v-model="loginData.email" required>
+            <label class="form-label">Email / Username</label>
+            <input type="text" class="form-control" v-model="loginData.identity" required>
           </div>
           
           <div class="mb-3">
