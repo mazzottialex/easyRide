@@ -5,6 +5,7 @@ const vehicleRoutes = require('./src/routes/vehicleRoutes');
 const rideRoutes = require('./src/routes/rideRoutes');
 const routingRoutes = require('./src/routes/routingRoutes');
 const driverRoutes = require('./src/routes/driverRoutes');
+const adminRoutes = require('./src/routes/adminRoutes');
 const cors = require('cors');
 const http = require('http');
 const { initializeSocket } = require('./src/socket/socketHandler');
@@ -26,6 +27,7 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/routing', routingRoutes);
 app.use('/api/drivers', driverRoutes);
+app.use('/api/admin', adminRoutes);
 
 const server = http.createServer(app);
 const io = initializeSocket(server);

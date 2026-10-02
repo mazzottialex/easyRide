@@ -1,7 +1,9 @@
 <script setup>
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const currentUser = computed(() => JSON.parse(localStorage.getItem('user') || 'null'))
 
 const handleLogout = () => {
   localStorage.removeItem('token');
@@ -21,13 +23,11 @@ const handleLogout = () => {
       
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-center">
-          <li class="nav-item">
-            <a class="nav-link" href="#">Link</a>
+          <li v-if="currentUser?.role !== 'admin'" class="nav-item">
+            <router-link class="nav-link" to="/history">Storico corse</router-link>
           </li>
-          <li class="nav-item">
-            <router-link class="nav-link" to="/history">
-              Storico corse
-            </router-link>
+          <li v-if="currentUser?.role === 'admin'" class="nav-item">
+            <router-link class="nav-link" to="/admin">Pannello Admin</router-link>
           </li>
         </ul>
         
