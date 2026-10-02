@@ -48,7 +48,7 @@ onMounted(() => {
         <button
           type="button"
           class="btn btn-primary btn-lg w-100 rounded-pill fw-bold"
-          :disabled="!props.isOnline && !props.location"
+          :disabled="!props.isOnline && !props.location?.length"
           @click="handleClick()"
         >
           {{ props.isOnline ? 'Vai offline' : 'Vai online' }}

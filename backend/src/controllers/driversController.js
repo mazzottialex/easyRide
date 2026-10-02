@@ -58,7 +58,7 @@ exports.setDriverAvailable = async (req, res) => {
         io.emit('driver:status-changed', {
             driverId: driver._id,
             userId: driver.userId._id,
-			status: driver.status
+			status: driver.available,
         });
         return res.status(200).json(driver);
     } catch (error) {

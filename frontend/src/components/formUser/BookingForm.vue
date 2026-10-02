@@ -52,7 +52,8 @@ onMounted(() => {
                             </span>
                         </button>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold py-3">
+                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold py-3"
+                        :disabled="!bookingData.pickup || !bookingData.dropoff">
                         Cerca un Driver
                     </button>
                 </form>

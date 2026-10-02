@@ -5,6 +5,35 @@ const { ridesModel } = require('../models/ridesModel');
 
 const JWT_KEY = 'abcabcabc';
 
+const setDriverOffline = async (io, socket) => {
+    try {
+        const driver = socket.driverId
+            ? await driverModel.findById(socket.driverId)
+            : await driverModel.findOne({ userId: socket.user.user_Id });
+        if (!driver) {
+            return;
+        }
+
+        const connectedSockets = await io.in(`driver:${driver._id}`).fetchSockets();
+
+        if (connectedSockets.length > 1) {
+            return;
+        }
+
+        driver.available = false;
+        driver.location = null;
+        await driver.save();
+
+        io.emit('driver:status-changed', {
+            driverId: driver._id,
+            userId: driver.userId,
+            status: false
+        });
+    } catch (error) {
+        console.error('Errore disconnessione:', error.message);
+    }
+};
+
 const initializeSocket = (server) => {
     const io = new Server(server, {
         cors: { origin: 'http://localhost:5173' }
@@ -20,16 +49,24 @@ const initializeSocket = (server) => {
         }
     });
 
-    io.on('connection', (socket) => {
+    io.on('connection', async (socket) => {
         console.log('Socket connesso:', socket.id);
         socket.join(`user:${socket.user.user_Id}`);
-        driverModel.findOne({ userId: socket.user.user_Id })
-            .then(driver => {
-                if (driver) {
-                    socket.join(`driver:${driver._id}`);
-                }
-            })
-            .catch(error => error.message);
+
+        socket.on('disconnecting', async () => {
+            console.log('Socket disconnesso:', socket.id);
+            await setDriverOffline(io, socket);
+        });
+
+        try {
+            const driver = await driverModel.findOne({ userId: socket.user.user_Id });
+            if (driver) {
+                socket.driverId = driver._id.toString();
+                socket.join(`driver:${driver._id}`);
+            }
+        } catch (error) {
+            console.error('Errore ricerca driver connesso:', error.message);
+        }
 
         socket.on('driver:location', async ({ rideId, location }) => {
             const ride = await ridesModel.findById(rideId);
@@ -38,10 +75,6 @@ const initializeSocket = (server) => {
                 return;
             }
             io.to(`user:${ride.passengerId}`).emit('ride:location-changed', { location });
-        });
-
-        socket.on('disconnect', () => {
-            console.log('Socket disconnesso:', socket.id);
         });
     });
     return io;
