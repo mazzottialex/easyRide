@@ -1,5 +1,6 @@
 const { driverModel } = require('../models/driversModel');
 const { vehiclesModel } = require('../models/vehiclesModel');
+const { getActiveRide, getRideState, saveRideState } = require('../services/rideStateService');
 
 exports.getAvailableDrivers = async (req, res) => {
 	try {
@@ -35,7 +36,12 @@ exports.getDriverStatus = async (req, res) => {
 		if (!driver) {
 			return res.status(404).json({ error: error.message });
 		}
-		return res.status(200).json({ available: driver.available });
+		const rideId = await getActiveRide(req.user.user_Id);
+		const state = rideId ? await getRideState(rideId) : null;
+		return res.status(200).json({
+			available: driver.available,
+			location: state?.location || driver.location || null
+		});
 	} catch (error) {
 		return res.status(500).json({ error: error.message });
 	}
@@ -51,6 +57,15 @@ exports.setDriverAvailable = async (req, res) => {
         ).populate('userId', 'name email');
 		if (!driver) {
 			return res.status(404).json({ error: error.message });
+		}
+		const rideId = await getActiveRide(req.user.user_Id);
+		if (rideId && location) {
+			const state = await getRideState(rideId) || {};
+			await saveRideState(rideId, {
+				...state,
+				location,
+				updatedAt: Date.now()
+			});
 		}
 
 		// Available in real time

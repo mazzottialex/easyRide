@@ -24,8 +24,8 @@ def send_location(base_url, ride_id, token, coordinate):
         raise RuntimeError(f"Location update failed: {error}") from error
 
 
-def simulate_route(coordinates, base_url, ride_id, token, step_seconds):
-    for coordinate in coordinates:
+def simulate_route(coordinates, base_url, ride_id, token, step_seconds, start_index):
+    for coordinate in coordinates[start_index:]:
         send_location(base_url, ride_id, token, coordinate)
         time.sleep(step_seconds)
 
@@ -36,6 +36,7 @@ def main():
     parser.add_argument("token")
     parser.add_argument("--base-url", default="http://localhost:3000")
     parser.add_argument("--step-seconds", type=float, default=1)
+    parser.add_argument("--start-index", type=int, default=0)
     args = parser.parse_args()
 
     route = json.load(sys.stdin)
@@ -46,6 +47,7 @@ def main():
         args.ride_id,
         args.token,
         args.step_seconds,
+        args.start_index,
     )
     print("Simulation completed")
 

@@ -1,79 +1,56 @@
 const { ridesModel } = require('../models/ridesModel');
 const { driverModel } = require('../models/driversModel');
-const { spawn } = require('child_process');
-const path = require('path');
-const jwt = require('jsonwebtoken');
+const {
+	saveRideState,
+	getRideState,
+	setActiveRide,
+	getActiveRide,
+	clearActiveRide,
+	isRideUserConnected
+} = require('../services/rideStateService');
+const {
+	start: startSimulation,
+	stop: stopSimulation,
+	pauseForUser,
+	resumeForUser
+} = require('../services/rideSimulationService');
 
-const JWT_KEY = 'abcabcabc';
-const activeSimulations = new Map();
+const updateRideState = async (rideId, changes) => {
+	const state = await getRideState(rideId) || {};
+	Object.assign(state, changes);
+	await saveRideState(rideId, state);
+	return state;
+};
 
+const rideResponse = (ride, state) => Object.assign(
+	{},
+	ride.toObject(),
+	state || {},
+	{ driverLocation: state && state.location || null }
+);
 
 const emitRideStatus = async (ride, io) => {
 	const updatedRide = await populateRide(ridesModel.findById(ride._id));
-	io?.to(`user:${ride.passengerId}`).emit('ride:status-changed', updatedRide);
-	io?.to(`driver:${ride.driverId}`).emit('ride:status-changed', updatedRide);
+	await updateRideState(ride._id, {
+		rideId: String(ride._id),
+		status: updatedRide.status,
+		updatedAt: Date.now()
+	});
+	if (io) {
+		io.to(`user:${ride.passengerId}`).emit('ride:status-changed', updatedRide);
+		io.to(`driver:${ride.driverId}`).emit('ride:status-changed', updatedRide);
+	}
 	return updatedRide;
-};
-
-const startRideSimulation = (ride, userId, route, statusAfterSimulation, io) => {
-	const rideId = String(ride._id);
-	if (activeSimulations.has(rideId)) {
-		return;
-	}
-
-	const token = jwt.sign({ user_Id: userId }, JWT_KEY, { expiresIn: '1h' });
-	const scriptPath = path.join(__dirname, '../../simulator/driver_simulator.py');
-	const simulation = spawn(
-		'python',
-		[
-			scriptPath,
-			rideId,
-			token,
-			'--step-seconds',
-			'0.01'
-		]
-	);
-
-	activeSimulations.set(rideId, simulation);
-	simulation.stdout.on('data', output => console.log(`[simulator] ${output}`));
-	simulation.stderr.on('data', output => console.error(`[simulator] ${output}`));
-	simulation.on('close', async () => {
-		activeSimulations.delete(rideId);
-
-		const currentRide = await ridesModel.findById(rideId);
-		if (!currentRide) {
-			return;
-		}
-		if (currentRide.status === 'cancelled' || currentRide.status === 'completed') {
-			return;
-		}
-		currentRide.status = statusAfterSimulation;
-		await currentRide.save();
-		await emitRideStatus(currentRide, io);
-	});
-
-	simulation.on('error', error => {activeSimulations.delete(rideId);console.error('Errore simulatore:',error.message);
-	});
-	simulation.stdin.write(JSON.stringify(route || []));
-	simulation.stdin.end();
-};
-
-const stopRideSimulation = rideId => {
-	const simulation = activeSimulations.get(String(rideId));
-	if (simulation) {
-		simulation.kill();
-		activeSimulations.delete(String(rideId));
-	}
 };
 
 exports.createRide = async (req, res) => {
 	try {
 		const { driverId, pickup, dropoff, price } = req.body;
-        const driver = await driverModel.findOne({
+        const availableDriver = await driverModel.findOne({
 			_id: driverId,
 			available: true
 		});
-        if (!driver) {
+        if (!availableDriver) {
 			return res.status(409).json({ error: 'Driver non disponibile' });
 		}
         const ride = await ridesModel.create({
@@ -84,8 +61,24 @@ exports.createRide = async (req, res) => {
 			price
 		});
         const createdRide = await populateRide(ridesModel.findById(ride._id));
+		const driverUser = await driverModel.findById(ride.driverId).select('userId');
+		await saveRideState(ride._id, {
+			rideId: String(ride._id),
+			passengerId: String(ride.passengerId),
+			driverId: String(ride.driverId),
+			driverUserId: driverUser && driverUser.userId ? String(driverUser.userId) : null,
+			status: ride.status,
+			location: null,
+			routeIndex: 0,
+			paused: false,
+			updatedAt: Date.now()
+		});
+		await setActiveRide(req.user.user_Id, ride._id);
+		await setActiveRide(driverUser && driverUser.userId, ride._id);
 		const io = req.app.get('io');
-		io?.to(`driver:${driverId}`).emit('ride:request', createdRide);
+		if (io) {
+			io.to(`driver:${driverId}`).emit('ride:request', createdRide);
+		}
 		return res.status(201).json(createdRide);
 	} catch (error) {
 		return res.status(500).json({ error: error.message });
@@ -99,7 +92,8 @@ exports.getRideById = async (req, res) => {
         if (!ride) {
 			return res.status(404).json({ error: 'Corsa non trovata' });
 		}
-		return res.status(200).json(ride);
+		const state = await getRideState(id);
+		return res.status(200).json(rideResponse(ride, state));
 	} catch (error) {
 		return res.status(500).json({ error: error.message });
 	}
@@ -120,13 +114,28 @@ exports.updateRideStatus = async (req, res) => {
 		if (!ride) {
 			return res.status(404).json({ error: 'Corsa non trovata' });
 		}
+		const state = await getRideState(id) || {};
+		const passengerId = state.passengerId || String(ride.passengerId);
+		const driver = await driverModel.findById(ride.driverId).select('userId');
+		const driverUserId = state.driverUserId || String(driver && driver.userId || '');
+		if (
+			status !== 'cancelled' &&
+			status !== 'completed' &&
+			(!await isRideUserConnected(passengerId) || !await isRideUserConnected(driverUserId))
+		) {
+			return res.status(409).json({
+				error: 'Entrambi gli utenti devono essere connessi per continuare la corsa'
+			});
+		}
 		ride.status = status;
 		await ride.save();
+		await updateRideState(id, { rideId: id, status, updatedAt: Date.now() });
 		if (status === 'completed' || status === 'cancelled') {
-			stopRideSimulation(ride._id);
+			stopSimulation(ride._id);
+			await clearActiveRide([state.passengerId, state.driverUserId, ride.passengerId, req.user.user_Id]);
 		}
 		const io = req.app.get('io');
-		updatedRide = await emitRideStatus(ride, io);
+		const updatedRide = await emitRideStatus(ride, io);
 		
 		return res.status(200).json(updatedRide);
 	} catch (error) {
@@ -140,12 +149,12 @@ exports.startRideRoute = async (req, res) => {
 		const { route, statusAfterSimulation } = req.body;
 		const ride = await ridesModel.findById(id);
 
-		startRideSimulation(
+		await startSimulation(
 			ride,
 			req.user.user_Id,
 			route,
 			statusAfterSimulation,
-			req.app.get('io')
+			currentRide => emitRideStatus(currentRide, req.app.get('io'))
 		);
 		return res.status(202).json({ message: 'Simulazione avviata' });
 	} catch (error) {
@@ -158,15 +167,53 @@ exports.updateRideLocation = async (req, res) => {
 		const { id } = req.params;
 		const { location } = req.body;
 		const ride = await ridesModel.findById(id);
+		if (!ride) {
+			return res.status(404).json({ error: 'Corsa non trovata' });
+		}
+		const state = await getRideState(id) || {};
+		const routeIndex = Array.isArray(state.route)
+			? state.route.findIndex(point => `${point[0]},${point[1]}` === location)
+			: -1;
+		await updateRideState(id, {
+			rideId: id,
+			location,
+			routeIndex: routeIndex >= 0 ? routeIndex + 1 : state.routeIndex || 0,
+			updatedAt: Date.now()
+		});
 
 		const io = req.app.get('io');
-		io?.to(`driver:${ride.driverId}`).emit('ride:location-changed', location);
+		if (io) {
+			io.to(`driver:${ride.driverId}`).emit('ride:location-changed', location);
+		}
 		return res.status(200).json({ rideId: ride._id, location });
 	} catch (error) {
 		return res.status(500).json({ error: error.message });
 	}
 };
 
+exports.getActiveRide = async (req, res) => {
+	try {
+		const rideId = await getActiveRide(req.user.user_Id);
+		if (!rideId) {
+			return res.status(204).send();
+		}
+		const ride = await populateRide(ridesModel.findById(rideId));
+		if (!ride || ['completed', 'cancelled'].includes(ride.status)) {
+			await clearActiveRide([req.user.user_Id]);
+			return res.status(204).send();
+		}
+		const state = await getRideState(rideId);
+		return res.status(200).json(rideResponse(ride, state));
+	} catch (error) {
+		return res.status(500).json({ error: error.message });
+	}
+};
+
+exports.pauseRideForUser = pauseForUser;
+exports.resumeRideForUser = (userId, io) => resumeForUser(
+	userId,
+	ride => emitRideStatus(ride, io)
+);
 
 exports.getRideHistory = async (req, res) => {
 	try {
