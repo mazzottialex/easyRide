@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const { driverModel } = require('../models/driversModel');
 const { ridesModel } = require('../models/ridesModel');
 const {SESSION_COOKIE, getSession, parseCookies} = require('../services/authSessionService');
+const { getRideState, saveRideState, setRidePresence, getActiveRide } = require('../services/rideStateService');
+const { pauseRideForUser, resumeRideForUser } = require('../controllers/ridesController');
 
 const JWT_KEY = 'abcabcabc';
 
@@ -12,6 +14,10 @@ const setDriverOffline = async (io, socket) => {
             ? await driverModel.findById(socket.driverId)
             : await driverModel.findOne({ userId: socket.user.user_Id });
         if (!driver) {
+            return;
+        }
+        const activeRideId = await getActiveRide(socket.user.user_Id);
+        if (activeRideId) {
             return;
         }
 
@@ -59,10 +65,19 @@ const initializeSocket = (server) => {
     io.on('connection', async (socket) => {
         console.log('Socket connesso:', socket.id);
         socket.join(`user:${socket.user.user_Id}`);
+        await setRidePresence(socket.user.user_Id, true);
+        await resumeRideForUser(socket.user.user_Id, io);
 
         socket.on('disconnecting', async () => {
             console.log('Socket disconnesso:', socket.id);
             await setDriverOffline(io, socket);
+            setTimeout(async () => {
+                const sockets = await io.in(`user:${socket.user.user_Id}`).fetchSockets();
+                if (sockets.length === 0) {
+                    await setRidePresence(socket.user.user_Id, false);
+                    await pauseRideForUser(socket.user.user_Id);
+                }
+            }, 1500);
         });
 
         try {
@@ -81,6 +96,8 @@ const initializeSocket = (server) => {
             if (!ride || !driver) {
                 return;
             }
+            const state = await getRideState(rideId) || {};
+            await saveRideState(rideId, { ...state, rideId: String(rideId), location, updatedAt: Date.now() });
             io.to(`user:${ride.passengerId}`).emit('ride:location-changed', { location });
         });
     });
