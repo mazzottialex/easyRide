@@ -1,12 +1,13 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
 const currentUser = computed(() => JSON.parse(localStorage.getItem('user') || 'null'))
 
-const handleLogout = () => {
-  localStorage.removeItem('token');
+const handleLogout = async () => {
+  await axios.post('http://localhost:3000/api/users/logout');
   localStorage.removeItem('user');
   router.push('/login');
 }

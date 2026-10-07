@@ -19,7 +19,6 @@ const registerData = ref({
 const handleRegister = async () => {
   try {
     const response = await axios.post('http://localhost:3000/api/users/register-driver', registerData.value)
-    localStorage.setItem('token', response.data.token)
     localStorage.setItem('user', JSON.stringify({
       _id: response.data._id,
       name: response.data.name,

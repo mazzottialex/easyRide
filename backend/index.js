@@ -9,6 +9,7 @@ const adminRoutes = require('./src/routes/adminRoutes');
 const cors = require('cors');
 const http = require('http');
 const { initializeSocket } = require('./src/socket/socketHandler');
+const { connectSessionStore } = require('./src/services/sessionStore');
 
 mongoose.connect('mongodb://localhost:27017/easyride')
   .then(() => console.log('MongoDB connected to easyride'))
@@ -18,7 +19,10 @@ mongoose.connect('mongodb://localhost:27017/easyride')
   });
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.static('public'));
 
@@ -33,6 +37,14 @@ const server = http.createServer(app);
 const io = initializeSocket(server);
 app.set('io', io);
 
-server.listen(3000, () => {
-    console.log('Server listening on port 3000');
+const startServer = async () => {
+  await connectSessionStore();
+  server.listen(3000, () => {
+      console.log('Server listening on port 3000');
+  });
+};
+
+startServer().catch((error) => {
+  console.error('Unable to start session store:', error.message);
+  process.exit(1);
 });

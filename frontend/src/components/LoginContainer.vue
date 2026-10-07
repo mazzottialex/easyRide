@@ -9,7 +9,6 @@ const loginData = ref({ identity: "", password: "" })
 const handleLogin = async () => {
   try {
     const response = await axios.post('http://localhost:3000/api/users/verify', loginData.value);
-    localStorage.setItem('token', response.data.token);
     localStorage.setItem('user', JSON.stringify({
       _id: response.data._id,
       name: response.data.name,

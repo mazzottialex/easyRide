@@ -1,7 +1,18 @@
 const jwt = require('jsonwebtoken');
+const {
+    SESSION_COOKIE,
+    getSession,
+    parseCookies
+} = require('../services/sessionStore');
 const JWT_SECRET = 'abcabcabc';
 
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
+    const cookies = parseCookies(req.headers.cookie);
+    const sessionUser = await getSession(cookies[SESSION_COOKIE]);
+    if (sessionUser) {
+        req.user = sessionUser;
+        return next();
+    }
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({

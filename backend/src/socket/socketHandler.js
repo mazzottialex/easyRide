@@ -2,6 +2,7 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const { driverModel } = require('../models/driversModel');
 const { ridesModel } = require('../models/ridesModel');
+const {SESSION_COOKIE, getSession, parseCookies} = require('../services/sessionStore');
 
 const JWT_KEY = 'abcabcabc';
 
@@ -36,13 +37,19 @@ const setDriverOffline = async (io, socket) => {
 
 const initializeSocket = (server) => {
     const io = new Server(server, {
-        cors: { origin: 'http://localhost:5173' }
+        cors: { origin: 'http://localhost:5173', credentials: true }
     });
 
-    io.use((socket, next) => {
+    io.use(async (socket, next) => {
         try {
-            const token = socket.handshake.auth?.token;
-            socket.user = jwt.verify(token, JWT_KEY);
+            const cookies = parseCookies(socket.handshake.headers.cookie);
+            const sessionUser = await getSession(cookies[SESSION_COOKIE]);
+            if (sessionUser) {
+                socket.user = sessionUser;
+            } else {
+                const token = socket.handshake.auth?.token;
+                socket.user = jwt.verify(token, JWT_KEY);
+            }
             next();
         } catch (error) {
             next(new Error('Token socket non valido'));
