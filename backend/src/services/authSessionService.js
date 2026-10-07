@@ -1,22 +1,8 @@
 const crypto = require('crypto');
-const { createClient } = require('redis');
+const { redisClient } = require('./redisClient');
 
 const SESSION_COOKIE = 'easyride.sid';
 const SESSION_TTL_SECONDS = Number(process.env.SESSION_TTL_SECONDS || 86400);
-const redisClient = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379'
-});
-
-redisClient.on('error', (error) => {
-    console.error('Redis session error:', error.message);
-});
-
-const connectSessionStore = async () => {
-    if (!redisClient.isOpen) {
-        await redisClient.connect();
-    }
-};
-
 const createSession = async (user) => {
     const sessionId = crypto.randomBytes(32).toString('hex');
     const session = {
@@ -62,7 +48,6 @@ const sessionCookieOptions = {
 
 module.exports = {
     SESSION_COOKIE,
-    connectSessionStore,
     createSession,
     getSession,
     destroySession,
