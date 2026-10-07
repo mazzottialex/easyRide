@@ -9,7 +9,7 @@ const {
     getSession,
     parseCookies,
     sessionCookieOptions
-} = require('../services/sessionStore');
+} = require('../services/authSessionService');
 
 const createAuthenticatedResponse = async (res, user, statusCode = 200) => {
     const sessionId = await createSession(user);

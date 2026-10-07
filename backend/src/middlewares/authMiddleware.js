@@ -3,7 +3,7 @@ const {
     SESSION_COOKIE,
     getSession,
     parseCookies
-} = require('../services/sessionStore');
+} = require('../services/authSessionService');
 const JWT_SECRET = 'abcabcabc';
 
 const authenticate = async (req, res, next) => {

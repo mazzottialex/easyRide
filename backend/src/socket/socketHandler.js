@@ -2,7 +2,7 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const { driverModel } = require('../models/driversModel');
 const { ridesModel } = require('../models/ridesModel');
-const {SESSION_COOKIE, getSession, parseCookies} = require('../services/sessionStore');
+const {SESSION_COOKIE, getSession, parseCookies} = require('../services/authSessionService');
 
 const JWT_KEY = 'abcabcabc';
 

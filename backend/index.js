@@ -9,7 +9,7 @@ const adminRoutes = require('./src/routes/adminRoutes');
 const cors = require('cors');
 const http = require('http');
 const { initializeSocket } = require('./src/socket/socketHandler');
-const { connectSessionStore } = require('./src/services/sessionStore');
+const { connectRedis } = require('./src/services/redisClient');
 
 mongoose.connect('mongodb://localhost:27017/easyride')
   .then(() => console.log('MongoDB connected to easyride'))
@@ -38,7 +38,7 @@ const io = initializeSocket(server);
 app.set('io', io);
 
 const startServer = async () => {
-  await connectSessionStore();
+  await connectRedis();
   server.listen(3000, () => {
       console.log('Server listening on port 3000');
   });
