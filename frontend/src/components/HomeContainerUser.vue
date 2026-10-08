@@ -1,11 +1,12 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue"
+import { onBeforeUnmount, onMounted, ref } from "vue"
 import BookingForm from "./formUser/BookingForm.vue"
 import SelectionLocationForm from "./formShared/SelectionLocationForm.vue"
 import MapForm from "./formShared/MapForm.vue"
 import SelectionDriverForm from "./formUser/SelectionDriverForm.vue"
 import { getSocket } from '../services/socket'
 import ControlRideForm from "./formUser/ControlRideFormUser.vue"
+import axios from 'axios'
 
 const currentView = ref('booking')
 
@@ -13,7 +14,6 @@ const bookingData = ref({
   pickup: "",
   dropoff: ""
 })
-const selectedDriver = ref(null)
 const activeRide = ref(null)
 const socket = getSocket()
 
@@ -36,7 +36,7 @@ const handleLocationSelected = (coordinates) => {
 
 //ricezione ride
 const handleRideAccepted = (ride) => {
-  activeRide.value = ride.value
+  activeRide.value = ride?.value
   currentView.value = 'ride'
 }
 
@@ -52,8 +52,10 @@ const handleRideStatusChanged = (ride) => {
 }
 
 const handleRideLocationChanged = ({location}) => {
-  console.log(activeRide.value?.status)
-  if (activeRide.value?.status === 'in_progress' && activeRide.value?.status !== 'completed') {
+  if (!activeRide.value) {
+    return
+  }
+  if (activeRide.value?.status === 'in_progress') {
     activeRide.value.pickup = location
     activeRide.value.driverLocation = null
   }
@@ -66,18 +68,27 @@ const handleRideLocationChanged = ({location}) => {
 const handleBooking = async () => {
   currentView.value = 'route'
 }
-const handleDriverSelected = async (driver) => {
-  selectedDriver.value = driver.value
-}
-
 const completeRide = () => {
   activeRide.value = null
   currentView.value = "booking"
 }
 
-onMounted(() => {
+const restoreActiveRide = async () => {
+  const response = await axios.get('http://localhost:3000/api/rides/active')
+  if (response.status === 200 && response.data) {
+    activeRide.value = response.data
+    currentView.value = 'ride'
+  }
+}
+
+onMounted(async () => {
   socket.on('ride:status-changed', handleRideStatusChanged)
   socket.on('ride:location-changed', handleRideLocationChanged)
+  try {
+    await restoreActiveRide()
+  } catch (error) {
+    console.error(error)
+  }
 }) //listener socket
 onBeforeUnmount(() => {
   socket.off('ride:status-changed', handleRideStatusChanged)
@@ -108,7 +119,6 @@ onBeforeUnmount(() => {
       class="mt-4"
       :pickup="bookingData.pickup"
       :dropoff="bookingData.dropoff"
-      @driver-selected="handleDriverSelected"
       @ride-accepted="handleRideAccepted"
     />
   </div>

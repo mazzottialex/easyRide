@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import axios from 'axios'
 import { getSocket } from '../../services/socket'
 import MapForm from '../formShared/MapForm.vue'
@@ -9,6 +9,10 @@ const emit = defineEmits(['rideData'])
 const props = defineProps({
   driverLocation: {
     type: Array,
+    default: null
+  },
+  initialRequest: {
+    type: Object,
     default: null
   }
 })
@@ -45,6 +49,11 @@ const updateStatus = async (request, status) => {
 
 onMounted(() => {
   socket.on('ride:request', addRequest)
+})
+watch(() => props.initialRequest, request => {
+  if (request) {
+    addRequest(request)
+  }
 })
 onBeforeUnmount(() => {
   socket.off('ride:request', addRequest)

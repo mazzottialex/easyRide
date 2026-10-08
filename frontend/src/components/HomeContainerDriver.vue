@@ -1,6 +1,6 @@
 <script setup>
 import axios from 'axios'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import DriverStatusForm from './formDriver/StatusSelectLocationForm.vue'
 import RequestForm from './formDriver/RequestForm.vue'
@@ -11,9 +11,9 @@ import { getSocket } from '../services/socket'
 
 const available = ref(null)
 const currentView = ref('offline')
-const currentUser = ref(null)
 const driverLocation = ref(null)
 const currentRide = ref(null)
+const restoredRequest = ref(null)
 const rideRoutes = ref([[], []])
 const socket = getSocket()
 
@@ -37,6 +37,9 @@ const loadStatus = async () => {
       }
     )
     available.value = response.data.available
+    if (response.data.location) {
+      driverLocation.value = response.data.location.split(',').map(Number)
+    }
   } catch (error) {
     handleRequestError(error)
   }
@@ -76,10 +79,8 @@ const handleLocationSelected = coordinates => {
 }
 
 const handleRideData = ride => {
+  restoredRequest.value = null
   currentRide.value = ride
-  //const location = driverLocation.value.join(',')
-  //socket.emit('driver:location', {rideId: ride.value._id, location}) //invio la posizione allo user
-  //currentView.value = 'rideInProgress'
 }
 
 const handleRideUpdated = ride => {
@@ -138,20 +139,35 @@ const completeRide = () => {
   currentView.value = available.value ? 'online' : 'offline'
 }
 
+const restoreActiveRide = async () => {
+  const response = await axios.get('http://localhost:3000/api/rides/active')
+  if (response.status === 200 && response.data) {
+    driverLocation.value = response.data.driverLocation
+      ? response.data.driverLocation.split(',').map(Number)
+      : driverLocation.value
+    if (response.data.status === 'pending') {
+      restoredRequest.value = response.data
+      currentView.value = 'online'
+    } else {
+      currentRide.value = response.data
+      currentView.value = 'rideInProgress'
+    }
+  }
+}
+
 onMounted(async () => {
   socket.on('ride:location-changed', handleRideLocationChanged)
   socket.on('ride:status-changed', handleRideUpdated)
   await loadStatus()
-  if (available.value && driverLocation.value === null) {
-    await changeStatus(false)
-  }
-  const user = localStorage.getItem('user');
-  if (user) {
-    try {
-      currentUser.value = JSON.parse(user);
-    } catch (error) {
-      currentUser.value = { name: user };
+  try {
+    await restoreActiveRide()
+  } catch (error) {
+    if (error.response?.status !== 204) {
+      handleRequestError(error)
     }
+  }
+  if (available.value && driverLocation.value === null && !currentRide.value) {
+    await changeStatus(false)
   }
 })
 
@@ -179,6 +195,7 @@ onBeforeUnmount(() => {
     <RequestForm
       v-if="available && currentView !== 'rideInProgress'"
       :driver-location="driverLocation"
+      :initial-request="restoredRequest"
       class="mt-4"
       @ride-data="handleRideData"
     />
