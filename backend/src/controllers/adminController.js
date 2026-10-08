@@ -3,6 +3,7 @@ const { driverModel } = require('../models/driversModel');
 const { vehiclesModel } = require('../models/vehiclesModel');
 const { ridesModel } = require('../models/ridesModel');
 const { pricingModel } = require('../models/pricingModel');
+const { createBot, getBots, disableBot, disableAllIdleBots} = require('../services/botService');
 
 exports.getUsers = async (req, res) => {
     try {
@@ -94,5 +95,45 @@ exports.updatePricing = async (req, res) => {
         res.json(pricing);
     } catch (error) {
         res.status(400).json({ error: error.message });
+    }
+};
+
+exports.getBots = async (req, res) => {
+    try {
+        const bots = await getBots();
+        res.json(bots);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.createBot = async (req, res) => {
+    try {
+        const bot = await createBot(req.body.name);
+        res.status(201).json(bot);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+exports.deleteBot = async (req, res) => {
+    try {
+        const bot = await disableBot(req.params.id);
+        res.json(bot);
+    } catch (error) {
+        res.status(error.statusCode || 400).json({
+            error: error.message
+        });
+    }
+};
+
+exports.deleteAllBots = async (req, res) => {
+    try {
+        const result = await disableAllBots();
+        res.json({
+            disabledCount: result.modifiedCount
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };

@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/adminController');
-const botService = require('../services/bot/botService');
 const { authenticate } = require('../middlewares/authMiddleware');
 const { requireAdmin } = require('../middlewares/adminMiddleware');
 
@@ -13,9 +12,9 @@ router.get('/rides', controller.getRides);
 router.get('/pricing', controller.getPricing);
 router.put('/pricing', controller.updatePricing);
 
-router.get('/bots', botService.getBots);
-router.post('/bots', botService.createBot);
-router.delete('/bots/:id', botService.deleteBot);
-router.delete('/bots', botService.deleteAllBots);
+router.get('/bots', controller.getBots);
+router.post('/bots', controller.createBot);
+router.delete('/bots/:id', controller.deleteBot);
+router.delete('/bots', controller.deleteAllBots);
 
 module.exports = router;
