@@ -14,6 +14,7 @@ const selectedDriver = ref(null)
 const errorMessage = ref(null)
 const requestSent = ref(false)
 const requestRejected = ref(false)
+const requestError = ref(null)
 const socket = getSocket()
 const ride = ref(null)
 
@@ -80,9 +81,10 @@ const selectDriver = driver => {
 
 const requestDriver = async () => {
     if (!selectedDriver.value) return
-    const data = driverDataMap.value.get(selectedDriver.value._id)
-    console.log('Requesting driver:', selectedDriver.value, 'with data:', data)
-    const response = await axios.post(
+    requestError.value = null
+    try {
+        const data = driverDataMap.value.get(selectedDriver.value._id)
+        const response = await axios.post(
         'http://localhost:3000/api/rides',
         {
             driverId: selectedDriver.value._id,
@@ -96,24 +98,24 @@ const requestDriver = async () => {
             }
         }
     )
-    requestSent.value = true
-    ride.value = response.data
+        requestSent.value = true
+        ride.value = response.data
+    } catch (error) {
+        requestError.value = error.response?.data?.error
+    }
 }
 
 const handleRideStatusChanged = (rideRec) => {
   if (ride.value?._id === rideRec._id) {
     ride.value = rideRec
   }
-  if (rideRec?.status == "accepted"){
+  if (ride.value?._id === rideRec?._id && rideRec?.status === 'accepted'){
     emit('ride-accepted', ride)
     emit('driver-selected', selectDriver)
   }
-  else if (rideRec?.status == "cancelled") {
+  else if (ride.value?._id === rideRec?._id && rideRec?.status === 'cancelled') {
     requestRejected.value = true
     requestSent.value = false
-    requests.value = requests.value.filter(
-      currentRequest => currentRequest._id !== rideRec._id
-    )
   }
 }
 
@@ -210,6 +212,9 @@ onBeforeUnmount(() => {
                     </div>
                     <div v-if="requestSent" class="alert alert-success mt-3 mb-0" role="status">
                         Richiesta inviata. Attendi la risposta del driver.
+                    </div>
+                    <div v-if="requestError" class="alert alert-danger mt-3 mb-0" role="alert">
+                        {{ requestError }}
                     </div>
                     <div v-else-if="requestRejected" class="alert alert-danger mt-3 mb-0" role="status">
                         Il driver ha rifiutato la tua richiesta. Seleziona un altro driver.

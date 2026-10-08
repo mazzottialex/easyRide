@@ -18,6 +18,7 @@ const props = defineProps({
 })
 
 const requests = ref([])
+const errorMessage = ref(null)
 const socket = getSocket()
 
 const addRequest = req => {
@@ -30,7 +31,9 @@ const addRequest = req => {
 }
 
 const updateStatus = async (request, status) => {
-  const response = await axios.patch(
+  try {
+    errorMessage.value = null
+    const response = await axios.patch(
     `http://localhost:3000/api/rides/${request._id}/status`,
     { status },
     {
@@ -38,12 +41,13 @@ const updateStatus = async (request, status) => {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }
     }
-  )
-  emit('rideData', response.data)
-  if(status === 'cancelled'){
+    )
+    emit('rideData', response.data)
     requests.value = requests.value.filter(
-    currentRequest => currentRequest._id !== request._id
-  )
+      currentRequest => currentRequest._id !== request._id
+    )
+  } catch (error) {
+    errorMessage.value = error.response?.data?.error || 'Impossibile aggiornare la richiesta'
   }
 }
 
@@ -54,7 +58,7 @@ watch(() => props.initialRequest, request => {
   if (request) {
     addRequest(request)
   }
-})
+}, { immediate: true })
 onBeforeUnmount(() => {
   socket.off('ride:request', addRequest)
 })
@@ -62,6 +66,9 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="col-12 col-md-8 col-lg-6 mx-auto">
+    <div v-if="errorMessage" class="alert alert-danger" role="alert">
+      {{ errorMessage }}
+    </div>
     <div v-if="requests.length > 0">
       <div v-for="request in requests" :key="request._id" class="card border-0 shadow-sm rounded-4 mb-3">
         <div class="card-body p-4 p-md-5">

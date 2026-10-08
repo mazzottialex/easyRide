@@ -1,5 +1,6 @@
 <script setup>
 import axios from 'axios'
+import { ref } from 'vue'
 
 const props = defineProps({
   ride: {
@@ -9,8 +10,11 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['ride-updated', 'ride-completed'])
+const errorMessage = ref(null)
 
 const updateStatus = async status => {
+  try {
+    errorMessage.value = null
   const response = await axios.patch(
     `http://localhost:3000/api/rides/${props.ride._id}/status`,
     { status },
@@ -20,7 +24,10 @@ const updateStatus = async status => {
       }
     }
   )
-  emit('ride-updated', response.data)
+    emit('ride-updated', response.data)
+  } catch (error) {
+    errorMessage.value = error.response?.data?.error
+  }
 }
 
 const completeRide = async () => {
@@ -32,6 +39,9 @@ const completeRide = async () => {
   <div class="col-12 col-md-8 col-lg-6 mx-auto">
     <div class="card border-0 shadow-sm rounded-4">
       <div class="card-body p-4">
+        <div v-if="errorMessage" class="alert alert-danger" role="alert">
+          {{ errorMessage }}
+        </div>
         <h2 class="h5 fw-bold">Corsa {{ props.ride.status }}</h2>
         <p class="mb-3 text-secondary">{{ props.ride.pickup }} → {{ props.ride.dropoff }}</p>
         <button
@@ -46,7 +56,7 @@ const completeRide = async () => {
         <p v-else-if="props.ride.status === 'arrived'" class="text-secondary mb-3">Attendi che il passeggero salga a bordo...</p>
         <p v-else-if="props.ride.status === 'in_progress'" class="text-secondary mb-3">In viaggio verso la destinazione...</p>
         <button
-          v-else-if="props.ride.status === 'completed'"
+          v-if="props.ride.status === 'completed'"
           type="button"
           class="btn btn-success w-100 rounded-pill fw-bold"
           @click="completeRide()"

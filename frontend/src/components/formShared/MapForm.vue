@@ -108,9 +108,18 @@ const refreshRoutes = async () => {
 
 watch(
   () => props.loc,
+  () => updateRouteOverlay(),
+  { deep: true }
+)
+
+watch(
+  () => [props.loc[1], props.loc[2]],
   async () => {
-    await refreshRoutes()
-  }
+    if (mapLoaded) {
+      await refreshRoutes()
+    }
+  },
+  { deep: true }
 )
 
 onMounted(() => {

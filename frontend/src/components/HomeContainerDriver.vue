@@ -1,6 +1,6 @@
 <script setup>
 import axios from 'axios'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import DriverStatusForm from './formDriver/StatusSelectLocationForm.vue'
 import RequestForm from './formDriver/RequestForm.vue'
@@ -15,6 +15,7 @@ const driverLocation = ref(null)
 const currentRide = ref(null)
 const restoredRequest = ref(null)
 const rideRoutes = ref([[], []])
+const activeSimulation = ref(null)
 const socket = getSocket()
 
 const router = useRouter()
@@ -91,25 +92,27 @@ const handleRideUpdated = ride => {
   }
   else if (ride.status === 'cancelled') {
     currentRide.value = null
-    //currentView.value = isOnline.value ? 'online' : 'offline'
+    activeSimulation.value = null
+    currentView.value = available.value ? 'online' : 'offline'
   }
-  else if (ride.status === 'arriving') {
-    sendRoute(rideRoutes.value[0], 'arrived')
-  }
-  else if (ride.status === 'in_progress') {
-    sendRoute(rideRoutes.value[1], 'completed')
+  else if (ride.status === 'arriving' || ride.status === 'in_progress') {
+    startSimulationForCurrentRide()
   }
   else if (ride.status === 'completed') {
-
+    activeSimulation.value = null
   }
 }
 
 const sendRoute = async (route, statusAfterSimulation) => {
-  if (!currentRide.value || !route?.length) {
+  if (!currentRide.value || !route?.length || activeSimulation.value === `${currentRide.value._id}:${statusAfterSimulation}`) {
     return
   }
-  await axios.patch(
-    `http://localhost:3000/api/rides/${currentRide.value._id}/route`,
+  const rideId = currentRide.value._id
+  const simulationKey = `${rideId}:${statusAfterSimulation}`
+  activeSimulation.value = simulationKey
+  try {
+    await axios.patch(
+    `http://localhost:3000/api/rides/${rideId}/route`,
     { route, statusAfterSimulation },
     {
       headers: {
@@ -117,10 +120,26 @@ const sendRoute = async (route, statusAfterSimulation) => {
       }
     }
   )
+  } catch (error) {
+    activeSimulation.value = null
+    console.error('Errore avvio simulazione:', error)
+  }
 }
 
 const handleRouteCalculated = routes => {
   rideRoutes.value = routes
+  startSimulationForCurrentRide()
+}
+
+const startSimulationForCurrentRide = () => {
+  const routes = {
+    arriving: [rideRoutes.value[0], 'arrived'],
+    in_progress: [rideRoutes.value[1], 'completed']
+  }
+  const simulation = routes[currentRide.value?.status]
+  if (simulation) {
+    sendRoute(simulation[0], simulation[1])
+  }
 }
 
 const handleRideLocationChanged = location => {
@@ -136,8 +155,13 @@ const handleRideLocationChanged = location => {
 
 const completeRide = () => {
   currentRide.value = null
+  activeSimulation.value = null
   currentView.value = available.value ? 'online' : 'offline'
 }
+
+watch(() => currentRide.value?.status,
+      () => startSimulationForCurrentRide()
+)
 
 const restoreActiveRide = async () => {
   const response = await axios.get('http://localhost:3000/api/rides/active')
