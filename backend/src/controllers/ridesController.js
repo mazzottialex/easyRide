@@ -31,7 +31,7 @@ const rideResponse = (ride, state) => Object.assign(
 
 const emitRideStatus = async (ride, io) => {
 	const updatedRide = await populateRide(ridesModel.findById(ride._id));
-	await updateRideState(ride._id, {
+	const state = await updateRideState(ride._id, {
 		rideId: String(ride._id),
 		status: updatedRide.status,
 		updatedAt: Date.now()
@@ -40,7 +40,15 @@ const emitRideStatus = async (ride, io) => {
 		io.to(`user:${ride.passengerId}`).emit('ride:status-changed', updatedRide);
 		io.to(`driver:${ride.driverId}`).emit('ride:status-changed', updatedRide);
 	}
-	return updatedRide;
+	return rideResponse(updatedRide, state);
+};
+
+const emitRideLocation = (ride, location, io) => {
+	if (!io) {
+		return;
+	}
+	io.to(`user:${ride.passengerId}`).emit('ride:location-changed', { location });
+	io.to(`driver:${ride.driverId}`).emit('ride:location-changed', location);
 };
 
 exports.createRide = async (req, res) => {
@@ -106,6 +114,14 @@ const populateRide = query => query
 		populate: { path: 'userId', select: 'name email' }
 	});
 
+const isSocketUserConnected = async (io, userId) => {
+	if (!io || !userId){
+		return false;
+	}
+	const sockets = await io.in(`user:${userId}`).fetchSockets();
+	return sockets.length > 0;
+};
+
 exports.updateRideStatus = async (req, res) => {
 	try {
 		const { id } = req.params;
@@ -116,12 +132,17 @@ exports.updateRideStatus = async (req, res) => {
 		}
 		const state = await getRideState(id) || {};
 		const passengerId = state.passengerId || String(ride.passengerId);
-		const driver = await driverModel.findById(ride.driverId).select('userId');
+		const driver = await driverModel.findById(ride.driverId).select('userId location');
 		const driverUserId = state.driverUserId || String(driver && driver.userId || '');
+		const io = req.app.get('io');
+		const passengerConnected = await isSocketUserConnected(io, passengerId)
+			|| await isRideUserConnected(passengerId);
+		const driverConnected = await isSocketUserConnected(io, driverUserId)
+			|| await isRideUserConnected(driverUserId);
 		if (
 			status !== 'cancelled' &&
 			status !== 'completed' &&
-			(!await isRideUserConnected(passengerId) || !await isRideUserConnected(driverUserId))
+			(!passengerConnected || !driverConnected)
 		) {
 			return res.status(409).json({
 				error: 'Entrambi gli utenti devono essere connessi per continuare la corsa'
@@ -129,12 +150,15 @@ exports.updateRideStatus = async (req, res) => {
 		}
 		ride.status = status;
 		await ride.save();
-		await updateRideState(id, { rideId: id, status, updatedAt: Date.now() });
+		const stateChanges = { rideId: id, status, updatedAt: Date.now() };
+		if (status === 'accepted' && driver && driver.location) {
+			stateChanges.location = driver.location;
+		}
+		await updateRideState(id, stateChanges);
 		if (status === 'completed' || status === 'cancelled') {
 			stopSimulation(ride._id);
 			await clearActiveRide([state.passengerId, state.driverUserId, ride.passengerId, req.user.user_Id]);
 		}
-		const io = req.app.get('io');
 		const updatedRide = await emitRideStatus(ride, io);
 		
 		return res.status(200).json(updatedRide);
@@ -148,13 +172,21 @@ exports.startRideRoute = async (req, res) => {
 		const { id } = req.params;
 		const { route, statusAfterSimulation } = req.body;
 		const ride = await ridesModel.findById(id);
+		if (!ride) {
+			return res.status(404).json({ error: 'Corsa non trovata' });
+		}
+		const io = req.app.get('io');
 
 		await startSimulation(
 			ride,
-			req.user.user_Id,
 			route,
 			statusAfterSimulation,
-			currentRide => emitRideStatus(currentRide, req.app.get('io'))
+			currentRide => emitRideStatus(currentRide, io),
+			(currentRide, location) => emitRideLocation(
+				currentRide,
+				location,
+				io
+			)
 		);
 		return res.status(202).json({ message: 'Simulazione avviata' });
 	} catch (error) {
@@ -212,7 +244,8 @@ exports.getActiveRide = async (req, res) => {
 exports.pauseRideForUser = pauseForUser;
 exports.resumeRideForUser = (userId, io) => resumeForUser(
 	userId,
-	ride => emitRideStatus(ride, io)
+	ride => emitRideStatus(ride, io),
+	(ride, location) => emitRideLocation(ride, location, io)
 );
 
 exports.getRideHistory = async (req, res) => {
