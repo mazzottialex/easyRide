@@ -67,9 +67,14 @@ const initializeSocket = (server) => {
         socket.join(`user:${socket.user.user_Id}`);
         await setRidePresence(socket.user.user_Id, true);
         await resumeRideForUser(socket.user.user_Id, io);
+        const presenceHeartbeat = setInterval(
+            () => setRidePresence(socket.user.user_Id, true),
+            10000
+        );
 
         socket.on('disconnecting', async () => {
             console.log('Socket disconnesso:', socket.id);
+            clearInterval(presenceHeartbeat);
             await setDriverOffline(io, socket);
             setTimeout(async () => {
                 const sockets = await io.in(`user:${socket.user.user_Id}`).fetchSockets();

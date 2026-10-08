@@ -9,8 +9,10 @@ const disconnectSocket = () => {
 }
 export const getSocket = () => {
   if (!socket) {
+    const token = localStorage.getItem('token')
     socket = io('http://localhost:3000', {
-      withCredentials: true
+      withCredentials: true,
+      auth: token ? { token } : undefined
     })
     window.addEventListener('pagehide', disconnectSocket, { once: true })
   }
