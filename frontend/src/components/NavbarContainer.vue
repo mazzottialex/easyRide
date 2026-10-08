@@ -28,7 +28,15 @@ const handleLogout = async () => {
             <router-link class="nav-link" to="/history">Storico corse</router-link>
           </li>
           <li v-if="currentUser?.role === 'admin'" class="nav-item">
-            <router-link class="nav-link" to="/admin">Pannello Admin</router-link>
+            <router-link class="nav-link" to="/admin">
+              Pannello Admin
+            </router-link>
+          </li>
+
+          <li v-if="currentUser?.role === 'admin'" class="nav-item">
+            <router-link class="nav-link" to="/admin/simulation">
+              Gestione simulazione
+            </router-link>
           </li>
         </ul>
         

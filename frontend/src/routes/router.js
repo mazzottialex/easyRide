@@ -15,7 +15,9 @@ const routes = [
     { path: '/registration-driver', name: "RegistrationDriver", component: RegistrationDriverPage, meta: { requiresGuest: true } },
     { path: '/home', name: "Home", component: HomePage, meta: { requiresAuth: true } },
     { path: '/history', name: "History", component: HistoryPage, meta: { requiresAuth: true } },
-    { path: '/admin', name: "Admin", component: AdminPage, meta: { requiresAuth: true, requiresAdmin: true } }
+    { path: '/admin', name: "Admin", component: AdminPage, meta: { requiresAuth: true, requiresAdmin: true } },
+    {path: '/admin', component: AdminPage},
+    {path: '/admin/simulation', component: AdminPage}
 ];
 
 const router = createRouter({
