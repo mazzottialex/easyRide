@@ -1,10 +1,6 @@
-const { spawn } = require('child_process');
-const path = require('path');
-const jwt = require('jsonwebtoken');
 const { ridesModel } = require('../models/ridesModel');
 const { getRideState, getActiveRide, saveRideState} = require('./rideStateService');
 
-const JWT_KEY = 'abcabcabc';
 const simulations = new Map();
 
 const updateState = async (rideId, changes) => {
@@ -14,17 +10,20 @@ const updateState = async (rideId, changes) => {
     return state;
 };
 
-const start = async (ride, userId, route, finalStatus, onComplete) => {
+const start = async (ride, route, finalStatus, onComplete, onLocation) => {
     const rideId = String(ride._id);
     if (simulations.has(rideId)) {
         return;
     }
     const savedState = await getRideState(rideId) || {};
-    const simulationRoute = route && route.length ? route : savedState.route;
-    const startIndex = savedState.routeIndex || 0;
+    const hasNewRoute = Boolean(route && route.length);
+    const simulationRoute = hasNewRoute ? route : savedState.route;
     if (!simulationRoute || !simulationRoute.length) {
         return;
     }
+    const startIndex = hasNewRoute
+        ? 0
+        : Math.min(savedState.routeIndex || 0, simulationRoute.length - 1);
     await updateState(rideId, {
         route: simulationRoute,
         routeIndex: startIndex,
@@ -33,53 +32,49 @@ const start = async (ride, userId, route, finalStatus, onComplete) => {
         updatedAt: Date.now()
     });
 
-    const token = jwt.sign({ user_Id: userId }, JWT_KEY, { expiresIn: '1h' });
-    const script = path.join(__dirname, '../../simulator/driver_simulator.py');
-    const process = spawn('python', [
-        script,
-        rideId,
-        token,
-        '--step-seconds',
-        '0.01',
-        '--start-index',
-        String(startIndex)
-    ]);
-    const simulation = { process, paused: false };
+    const simulation = { paused: false, timer: null };
     simulations.set(rideId, simulation);
-
-    process.stdout.on('data', output => console.log(`[simulator] ${output}`));
-    process.stderr.on('data', output => console.error(`[simulator] ${output}`));
-    process.on('error', error => {
-        simulations.delete(rideId);
-        console.error('Errore simulatore:', error.message);
-    });
-    process.on('close', async () => {
+    const advance = async index => {
         if (simulations.get(rideId) !== simulation) {
             return;
         }
+        if (simulation.paused) {
+            return;
+        }
+        const coordinate = simulationRoute[index];
+        const state = await getRideState(rideId) || {};
+        await updateState(rideId, {
+            ...state,
+            location: `${coordinate[0]},${coordinate[1]}`,
+            routeIndex: index + 1,
+            updatedAt: Date.now()
+        });
+        if (onLocation) {
+            await onLocation(ride, `${coordinate[0]},${coordinate[1]}`);
+        }
+        if (index + 1 < simulationRoute.length) {
+            simulation.timer = setTimeout(() => advance(index + 1), 10);
+            return;
+        }
         simulations.delete(rideId);
-
         const currentRide = await ridesModel.findById(rideId);
-        if (
-            !currentRide ||
-            simulation.paused ||
-            ['cancelled', 'completed'].includes(currentRide.status)
-        ) {
+        if (!currentRide || ['cancelled', 'completed'].includes(currentRide.status)) {
             return;
         }
         currentRide.status = finalStatus;
         await currentRide.save();
         await onComplete(currentRide);
+    };
+    advance(startIndex).catch(error => {
+        simulations.delete(rideId);
+        console.error('Errore simulatore:', error.message);
     });
-
-    process.stdin.write(JSON.stringify(simulationRoute));
-    process.stdin.end();
 };
 
 const stop = rideId => {
     const simulation = simulations.get(String(rideId));
     if (simulation) {
-        simulation.process.kill();
+        clearTimeout(simulation.timer);
         simulations.delete(String(rideId));
     }
 };
@@ -91,12 +86,12 @@ const pauseForUser = async userId => {
         return;
     }
     simulation.paused = true;
-    simulation.process.kill();
+    clearTimeout(simulation.timer);
     simulations.delete(String(rideId));
     await updateState(rideId, { paused: true, updatedAt: Date.now() });
 };
 
-const resumeForUser = async (userId, onComplete) => {
+const resumeForUser = async (userId, onComplete, onLocation) => {
     const rideId = await getActiveRide(userId);
     if (!rideId || simulations.has(String(rideId))) {
         return;
@@ -109,10 +104,10 @@ const resumeForUser = async (userId, onComplete) => {
     }
     await start(
         ride,
-        state.driverUserId || userId,
-        state.route,
+        null,
         state.statusAfterSimulation,
-        onComplete
+        onComplete,
+        onLocation
     );
 };
 
