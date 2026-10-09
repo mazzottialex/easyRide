@@ -1,8 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
 const speed = ref(1)
-const bots = ref(0)
+const bots = ref([])
 const editingSpeed = ref(false)
 const error = ref('')
 
@@ -17,6 +17,10 @@ const addBot = () => {
 
 const removeBots = () => {
 }
+const updateBotStatus = () => {
+}
+
+onMounted(load)
 </script>
 
 <template>
@@ -64,16 +68,39 @@ const removeBots = () => {
             Bot Driver
           </h3>
           <span class="text-secondary small">
-            Bot attivi: {{ bots }}
+            Bot configurati: {{ bots.length }}
           </span>
         </div>
-        <div class="d-flex gap-2">
-          <button class="btn btn-primary btn-sm" @click="addBot">
-            Aggiungi bot
+        <button class="btn btn-primary btn-sm mb-3" type="button" @click="addBot" :disabled="botActionLoading">
+          Aggiungi bot
+        </button>
+        <div class="d-flex justify-content-end mb-3">
+          <button class="btn btn-outline-danger btn-sm" @click="removeBots" :disabled="botActionLoading || !bots.some(bot => bot.enabled !== false)">
+            Disabilita tutti i bot inattivi
           </button>
-          <button class="btn btn-outline-danger btn-sm" @click="removeBots">
-            Elimina tutti i bot
-          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Nome</th><th>Stato</th><th>Classe</th><th>Posti</th><th></th></tr></thead>
+            <tbody>
+              <tr v-for="bot in bots" :key="bot._id">
+                <td>{{ bot.botName || bot.userId?.name || '-' }}</td>
+                <td>
+                  <span :class="bot.enabled === false ? 'badge text-bg-secondary' : bot.available ? 'badge text-bg-success' : 'badge text-bg-warning'">
+                    {{ bot.enabled === false ? 'Disabilitato' : bot.available ? 'Disponibile' : 'In corsa' }}
+                  </span>
+                </td>
+                <td>{{ bot.vehicle?.type || '-' }}</td>
+                <td>{{ bot.vehicle?.seatsAvailable ?? '-' }}</td>
+                <td class="text-end">
+                  <button class="btn btn-sm" :class="bot.enabled === false ? 'btn-outline-success' : 'btn-outline-danger'" @click="updateBotStatus(bot)">
+                    {{ bot.enabled === false ? 'Abilita' : 'Disabilita' }}
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="!bots.length"><td colspan="5" class="text-secondary">Nessun bot configurato</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
