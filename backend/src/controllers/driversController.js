@@ -5,7 +5,7 @@ const { getActiveRide, getRideState, saveRideState } = require('../services/ride
 exports.getAvailableDrivers = async (req, res) => {
 	try {
 		const drivers = await driverModel
-			.find({ available: true, location: { $exists: true } })
+			.find({ available: true, enabled: { $ne: false }, location: { $exists: true } })
 			.populate('userId', 'name email')
 
 		const driverId = drivers.map(driver => driver._id);

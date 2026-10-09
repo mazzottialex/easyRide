@@ -3,7 +3,7 @@ const { driverModel } = require('../models/driversModel');
 const { vehiclesModel } = require('../models/vehiclesModel');
 const { ridesModel } = require('../models/ridesModel');
 const { pricingModel } = require('../models/pricingModel');
-const { createBot, getBots, disableBot, disableAllIdleBots} = require('../services/botService');
+const { createBot, getBots, disableBot, enableBot, disableAllBots } = require('../services/botService');
 
 exports.getUsers = async (req, res) => {
     try {
@@ -64,6 +64,17 @@ const DEFAULT_PRICING = {
     seatMultipliers: { four: 1, eight: 1.2 }
 };
 
+const emitBotStatus = (req, bot) => {
+    const io = req.app.get('io');
+    if (!io || !bot) return;
+    io.emit('driver:status-changed', {
+        driverId: String(bot._id),
+        userId: bot.userId ? String(bot.userId._id || bot.userId) : null,
+        status: Boolean(bot.enabled && bot.available),
+        isBot: true
+    });
+};
+
 exports.getPricing = async (req, res) => {
     try {
         let pricing = await pricingModel.findOne();
@@ -119,6 +130,7 @@ exports.createBot = async (req, res) => {
 exports.deleteBot = async (req, res) => {
     try {
         const bot = await disableBot(req.params.id);
+        emitBotStatus(req, bot);
         res.json(bot);
     } catch (error) {
         res.status(error.statusCode || 400).json({
@@ -127,9 +139,31 @@ exports.deleteBot = async (req, res) => {
     }
 };
 
-exports.deleteAllBots = async (req, res) => {
+exports.updateBotStatus = async (req, res) => {
     try {
+        const bot = req.body.enabled
+            ? await enableBot(req.params.id)
+            : await disableBot(req.params.id);
+        emitBotStatus(req, bot);
+        res.json(bot);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+exports.disableAllBots = async (req, res) => {
+    try {
+        const bots = await driverModel.find({
+            isBot: true,
+            enabled: { $ne: false }
+        }).select('_id userId available enabled');
         const result = await disableAllBots();
+        const io = req.app.get('io');
+        bots.forEach(bot => emitBotStatus(req, {
+            ...bot.toObject(),
+            enabled: false,
+            available: false
+        }));
         res.json({
             disabledCount: result.modifiedCount
         });
