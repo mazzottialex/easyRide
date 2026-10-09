@@ -1,7 +1,6 @@
 const { ridesModel } = require('../models/ridesModel');
 const { driverModel } = require('../models/driversModel');
 const {
-	saveRideState,
 	getRideState,
 	setActiveRide,
 	getActiveRide,
@@ -10,56 +9,51 @@ const {
 } = require('../services/rideStateService');
 const {
 	start: startSimulation,
-	stop: stopSimulation,
 	pauseForUser,
 	resumeForUser
 } = require('../services/rideSimulationService');
 
-const updateRideState = async (rideId, changes) => {
-	const state = await getRideState(rideId) || {};
-	Object.assign(state, changes);
-	await saveRideState(rideId, state);
-	return state;
-};
-
-const rideResponse = (ride, state) => Object.assign(
-	{},
-	ride.toObject(),
-	state || {},
-	{ driverLocation: state && state.location || null }
-);
-
-const emitRideStatus = async (ride, io) => {
-	const updatedRide = await populateRide(ridesModel.findById(ride._id));
-	const state = await updateRideState(ride._id, {
-		rideId: String(ride._id),
-		status: updatedRide.status,
-		updatedAt: Date.now()
-	});
-	if (io) {
-		io.to(`user:${ride.passengerId}`).emit('ride:status-changed', updatedRide);
-		io.to(`driver:${ride.driverId}`).emit('ride:status-changed', updatedRide);
-	}
-	return rideResponse(updatedRide, state);
-};
-
-const emitRideLocation = (ride, location, io) => {
-	if (!io) {
-		return;
-	}
-	io.to(`user:${ride.passengerId}`).emit('ride:location-changed', { location });
-	io.to(`driver:${ride.driverId}`).emit('ride:location-changed', location);
-};
+const {
+    setRideStatus,
+    emitRideStatus,
+    emitRideLocation,
+    populateRide,
+    updateRideState,
+    updateRideLocation,
+    rideResponse
+} = require('../services/rideLifecycleService');
 
 exports.createRide = async (req, res) => {
 	try {
 		const { driverId, pickup, dropoff, price } = req.body;
-        const availableDriver = await driverModel.findOne({
+		let availableDriver = await driverModel.findOne({
 			_id: driverId,
-			available: true
+			available: true,
+			enabled: { $ne: false }
 		});
         if (!availableDriver) {
 			return res.status(409).json({ error: 'Driver non disponibile' });
+		}
+		if (availableDriver.isBot) {
+			availableDriver = await driverModel.findOneAndUpdate(
+				{
+					_id: driverId,
+					available: true,
+					enabled: { $ne: false },
+					isBot: true
+				},
+				{
+					$set: {available: false}
+				},
+				{
+					new: true
+				}
+			);
+			if (!availableDriver) {
+				return res.status(409).json({
+					error: 'Bot non disponibile'
+				});
+			}
 		}
         const ride = await ridesModel.create({
 			passengerId: req.user.user_Id,
@@ -70,7 +64,7 @@ exports.createRide = async (req, res) => {
 		});
         const createdRide = await populateRide(ridesModel.findById(ride._id));
 		const driverUser = await driverModel.findById(ride.driverId).select('userId');
-		await saveRideState(ride._id, {
+		await updateRideState(ride._id, {
 			rideId: String(ride._id),
 			passengerId: String(ride.passengerId),
 			driverId: String(ride.driverId),
@@ -84,7 +78,12 @@ exports.createRide = async (req, res) => {
 		await setActiveRide(req.user.user_Id, ride._id);
 		await setActiveRide(driverUser && driverUser.userId, ride._id);
 		const io = req.app.get('io');
-		if (io) {
+		if (availableDriver.isBot) {
+			setRideStatus(ride, 'accepted', io).catch(error => {
+				console.error('Errore accettazione corsa bot:', error.message);
+			});
+		} else if (io) {
+			// driver reale
 			io.to(`driver:${driverId}`).emit('ride:request', createdRide);
 		}
 		return res.status(201).json(createdRide);
@@ -107,12 +106,6 @@ exports.getRideById = async (req, res) => {
 	}
 }
 
-const populateRide = query => query
-	.populate('passengerId', 'name email')
-	.populate({
-		path: 'driverId',
-		populate: { path: 'userId', select: 'name email' }
-	});
 
 const isSocketUserConnected = async (io, userId) => {
 	if (!io || !userId){
@@ -132,7 +125,7 @@ exports.updateRideStatus = async (req, res) => {
 		}
 		const state = await getRideState(id) || {};
 		const passengerId = state.passengerId || String(ride.passengerId);
-		const driver = await driverModel.findById(ride.driverId).select('userId location');
+		const driver = await driverModel.findById(ride.driverId).select('userId location isBot');
 		const driverUserId = state.driverUserId || String(driver && driver.userId || '');
 		const io = req.app.get('io');
 		const passengerConnected = await isSocketUserConnected(io, passengerId)
@@ -148,18 +141,7 @@ exports.updateRideStatus = async (req, res) => {
 				error: 'Entrambi gli utenti devono essere connessi per continuare la corsa'
 			});
 		}
-		ride.status = status;
-		await ride.save();
-		const stateChanges = { rideId: id, status, updatedAt: Date.now() };
-		if (status === 'accepted' && driver && driver.location) {
-			stateChanges.location = driver.location;
-		}
-		await updateRideState(id, stateChanges);
-		if (status === 'completed' || status === 'cancelled') {
-			stopSimulation(ride._id);
-			await clearActiveRide([state.passengerId, state.driverUserId, ride.passengerId, req.user.user_Id]);
-		}
-		const updatedRide = await emitRideStatus(ride, io);
+		const updatedRide = await setRideStatus(ride, status, io);
 		
 		return res.status(200).json(updatedRide);
 	} catch (error) {
@@ -202,22 +184,8 @@ exports.updateRideLocation = async (req, res) => {
 		if (!ride) {
 			return res.status(404).json({ error: 'Corsa non trovata' });
 		}
-		const state = await getRideState(id) || {};
-		const routeIndex = Array.isArray(state.route)
-			? state.route.findIndex(point => `${point[0]},${point[1]}` === location)
-			: -1;
-		await updateRideState(id, {
-			rideId: id,
-			location,
-			routeIndex: routeIndex >= 0 ? routeIndex + 1 : state.routeIndex || 0,
-			updatedAt: Date.now()
-		});
-
 		const io = req.app.get('io');
-		if (io) {
-			io.to(`driver:${ride.driverId}`).emit('ride:location-changed', location);
-		}
-		return res.status(200).json({ rideId: ride._id, location });
+		return res.status(200).json(await updateRideLocation(ride, location, io));
 	} catch (error) {
 		return res.status(500).json({ error: error.message });
 	}
