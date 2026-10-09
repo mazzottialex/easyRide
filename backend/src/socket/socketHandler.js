@@ -64,6 +64,11 @@ const initializeSocket = (server) => {
 
     io.on('connection', async (socket) => {
         console.log('Socket connesso:', socket.id);
+        const driver = await driverModel.findOne({ userId: socket.user.user_Id });
+        if (driver) {
+            socket.driverId = driver._id.toString();
+            socket.join(`driver:${driver._id}`);
+        }
         socket.join(`user:${socket.user.user_Id}`);
         await setRidePresence(socket.user.user_Id, true);
         await resumeRideForUser(socket.user.user_Id, io);
@@ -84,16 +89,6 @@ const initializeSocket = (server) => {
                 }
             }, 1500);
         });
-
-        try {
-            const driver = await driverModel.findOne({ userId: socket.user.user_Id });
-            if (driver) {
-                socket.driverId = driver._id.toString();
-                socket.join(`driver:${driver._id}`);
-            }
-        } catch (error) {
-            console.error('Errore ricerca driver connesso:', error.message);
-        }
 
         socket.on('driver:location', async ({ rideId, location }) => {
             const ride = await ridesModel.findById(rideId);

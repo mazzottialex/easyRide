@@ -49,7 +49,7 @@ exports.calculateRidePrice = async (req, res) => {
         if (!driverId || !pickup || !dropoff) {
             return res.status(400).json({ error: 'Parametri mancanti' });
         }
-        const driver = await driverModel.findOne({_id: driverId, vailable: true, enabled: { $ne: false }});
+        const driver = await driverModel.findOne({_id: driverId, available: true, enabled: { $ne: false }});
         if (!driver) return res.status(409).json({ error: 'Driver non disponibile' });
 
         res.json(await calculateRidePrice({ driverId, pickup, dropoff }));

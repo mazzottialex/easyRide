@@ -29,7 +29,7 @@ const createBot = async () => {
         driverId: driver._id,
         brand: 'Brand1',
         model: 'Model1',
-        numberPlate: '11AAA11',
+        numberPlate: `BOT-${Date.now()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,
         color: 'Black',
         seatsAvailable: 4,
         type: 'lowcost'
@@ -40,26 +40,30 @@ const createBot = async () => {
 const getBots = async () => {
     const bots = await driverModel
         .find({ isBot: true })
-        .populate('userId', 'name email')
-        .populate('vehicle');
+        .populate('userId', 'name email');
+    const vehicles = await vehiclesModel.find({
+        driverId: { $in: bots.map(bot => bot._id) }
+    }).select('driverId brand model numberPlate color seatsAvailable type');
     const activeDriverIds = await ridesModel.distinct('driverId', {
         status: { $nin: ['completed', 'cancelled'] }
     });
     const activeIds = new Set(activeDriverIds.map(String));
     return bots.map(bot => ({
         ...bot.toObject(),
+        vehicle: vehicles.find(vehicle => String(vehicle.driverId) === String(bot._id)) || null,
         hasActiveRide: activeIds.has(String(bot._id))
     }));
 };
 
-const getBotById = async driverId => driverModel
-    .findOne({ _id: driverId, isBot: true })
-    .populate('userId', 'name email')
-    .populate({
-        path: 'vehicle',
-        select: 'driverId brand model numberPlate color seatsAvailable type'
-    });
 
+const getBotById = async driverId => {
+    const bot = await driverModel.findOne({ _id: driverId, isBot: true })
+        .populate('userId', 'name email');
+    if (!bot) return null;
+    const vehicle = await vehiclesModel.findOne({ driverId: bot._id })
+        .select('driverId brand model numberPlate color seatsAvailable type');
+    return { ...bot.toObject(), vehicle: vehicle || null };
+};
 const disableBot = async (driverId) => {
     const activeRide = await ridesModel.exists({
         driverId,

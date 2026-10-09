@@ -3,7 +3,7 @@ const { driverModel } = require('../models/driversModel');
 const { vehiclesModel } = require('../models/vehiclesModel');
 const { ridesModel } = require('../models/ridesModel');
 const { pricingModel } = require('../models/pricingModel');
-const { createBot, getBots, disableBot, enableBot, disableAllBots } = require('../services/botService');
+const { createBot, getBots, disableBot, enableBot, disableAllBots } = require('../services/bot/botService');
 
 exports.getUsers = async (req, res) => {
     try {

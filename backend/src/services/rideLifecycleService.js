@@ -37,8 +37,14 @@ const emitRideStatus = async (ride, io) => {
         status: updatedRide.status,
         updatedAt: Date.now()
     });
-    io.to(`user:${ride.passengerId}`).emit('ride:status-changed', updatedRide);
-    io.to(`driver:${ride.driverId}`) .emit('ride:status-changed', updatedRide);
+    if (io) {
+        const statusPayload = {
+            ...updatedRide.toObject(),
+            driverLocation: state.location || null
+        };
+        io.to(`user:${ride.passengerId}`).emit('ride:status-changed', statusPayload);
+        io.to(`driver:${ride.driverId}`).emit('ride:status-changed', statusPayload);
+    }
 
     return rideResponse(updatedRide, state);
 };
@@ -92,7 +98,7 @@ const emitRideLocation = (ride, location, io) => {
         return;
     }
     io.to(`user:${ride.passengerId}`).emit('ride:location-changed', { location });
-    io.to(`driver:${ride.driverId}`).emit('ride:location-changed', location);
+    io.to(`driver:${ride.driverId}`).emit('ride:location-changed', { location });
 };
 
 const updateRideLocation = async (ride, location, io) => {
