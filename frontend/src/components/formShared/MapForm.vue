@@ -61,7 +61,9 @@ const toCoordinates = location => {
 
 
 const drawRoute = routes => {
-  routeCoordinates = routes
+  routeCoordinates = Array.isArray(routes)
+    ? routes.filter(route => Array.isArray(route))
+    : []
   updateRouteOverlay()
 }
 
@@ -78,9 +80,10 @@ const getRoute = async (posA, posB) => {
         destination: corB.join(',')
       }
     })
-    return response.data.route.geometry.coordinates
+    return response.data.route?.geometry?.coordinates || []
   } catch (error) {
-    alert(error.message)
+    console.error( error)
+    return []
   }
 }
 

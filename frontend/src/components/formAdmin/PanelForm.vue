@@ -21,8 +21,7 @@ const api = async (method, url, data) => {
     return await axios({ 
       method: method,
       url: `http://localhost:3000/api/admin${url}`,
-      data: data,
-      headers: authConfig().headers
+      data
     })
   } catch (error) {
     if (error.response?.status === 401 || error.response?.status === 403) {

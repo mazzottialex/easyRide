@@ -55,13 +55,7 @@ const handleRideLocationChanged = ({location}) => {
   if (!activeRide.value) {
     return
   }
-  if (activeRide.value?.status === 'in_progress') {
-    activeRide.value.pickup = location
-    activeRide.value.driverLocation = null
-  }
-  else {
-    activeRide.value.driverLocation = location
-  }
+  activeRide.value.driverLocation = location
 }
 
 

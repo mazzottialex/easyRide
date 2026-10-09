@@ -144,7 +144,7 @@ const startSimulationForCurrentRide = () => {
 
 const handleRideLocationChanged = location => {
   if (currentRide.value.status === 'in_progress' || currentRide.value.status === 'completed') {
-    currentRide.value.pickup = location.split(',').map(Number)
+    driverLocation.value = location.split(',').map(Number)
     driverLocation.value = null
   }
   else {
